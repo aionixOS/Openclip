@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #0a0a0a;
+    --surface: #111111;
+    --foreground: #ededed;
+    --border: #222222;
+    --accent: #ffffff;
+    --error: #ff4444;
+    --success: #3ecf8e;
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-[var(--background)] text-[var(--foreground)] antialiased min-h-screen flex flex-col;
+  }
+}

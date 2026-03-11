@@ -1,0 +1,71 @@
+[youtube] Extracting URL: https://youtu.be/bGQ8YvgjoDk?si=NVAvFGJ_QE-Ol8kX
+[youtube] bGQ8YvgjoDk: Downloading webpage
+[youtube] bGQ8YvgjoDk: Downloading web player API JSON
+[youtube] bGQ8YvgjoDk: Downloading android vr player API JSON
+[youtube] bGQ8YvgjoDk: Downloading web safari player API JSON
+[youtube] bGQ8YvgjoDk: Downloading player 9f4cc5e4-tv
+[youtube] [jsc:node] Solving JS challenges using node
+WARNING: [youtube] [jsc] Remote component challenge solver script (node) was skipped. It may be required to solve JS challenges. You can enable the download with  --remote-components ejs:github  (recommended). For more information and alternatives, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS
+WARNING: [youtube] bGQ8YvgjoDk: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS
+[info] bGQ8YvgjoDk: Downloading 1 format(s): 399+140
+[download] Destination: ..\tmp\5a2d41aa-f86d-4146-b03b-e0b8c5ee9b6e\How to film yourself cinematically (easy).f399.mp4
+[download]   0.0% of   28.74MiB at   49.77KiB/s ETA 09:51
+[download]   0.0% of   28.74MiB at  137.76KiB/s ETA 03:33
+[download]   0.0% of   28.74MiB at  296.44KiB/s ETA 01:39
+[download]   0.1% of   28.74MiB at  599.77KiB/s ETA 00:49
+[download]   0.1% of   28.74MiB at  691.59KiB/s ETA 00:42
+[download]   0.2% of   28.74MiB at  801.77KiB/s ETA 00:36
+[download]   0.4% of   28.74MiB at  740.53KiB/s ETA 00:39
+[download]   0.9% of   28.74MiB at  937.94KiB/s ETA 00:31
+[download]   1.7% of   28.74MiB at    1.41MiB/s ETA 00:20
+[download]   3.5% of   28.74MiB at    1.99MiB/s ETA 00:13
+[download]   7.0% of   28.74MiB at    3.04MiB/s ETA 00:08
+[download]  13.9% of   28.74MiB at    3.62MiB/s ETA 00:06
+[download]  27.8% of   28.74MiB at    4.53MiB/s ETA 00:04
+[download]  34.7% of   28.74MiB at    4.89MiB/s ETA 00:03
+[download]  34.7% of   28.74MiB at  303.28KiB/s ETA 01:03
+[download]  34.7% of   28.74MiB at  751.40KiB/s ETA 00:25
+[download]  34.7% of   28.74MiB at    1.47MiB/s ETA 00:12
+[download]  34.7% of   28.74MiB at    2.67MiB/s ETA 00:07
+[download]  34.8% of   28.74MiB at    4.31MiB/s ETA 00:04
+[download]  34.9% of   28.74MiB at    6.26MiB/s ETA 00:02
+[download]  35.1% of   28.74MiB at    1.64MiB/s ETA 00:11
+[download]  35.6% of   28.74MiB at    2.66MiB/s ETA 00:06
+[download]  36.4% of   28.74MiB at    3.73MiB/s ETA 00:04
+[download]  38.2% of   28.74MiB at    4.97MiB/s ETA 00:03
+[download]  41.7% of   28.74MiB at    6.49MiB/s ETA 00:02
+[download]  48.6% of   28.74MiB at    5.76MiB/s ETA 00:02
+[download]  62.5% of   28.74MiB at    4.46MiB/s ETA 00:02
+[download]  68.6% of   28.74MiB at    4.43MiB/s ETA 00:02
+[download]  68.6% of   28.74MiB at  Unknown B/s ETA Unknown
+[download]  68.7% of   28.74MiB at    1.76MiB/s ETA 00:05
+[download]  68.7% of   28.74MiB at  121.15KiB/s ETA 01:16
+[download]  68.7% of   28.74MiB at  254.12KiB/s ETA 00:36
+[download]  68.7% of   28.74MiB at  325.67KiB/s ETA 00:28
+[download]  68.9% of   28.74MiB at  415.63KiB/s ETA 00:22
+[download]  69.1% of   28.74MiB at  580.31KiB/s ETA 00:15
+[download]  69.5% of   28.74MiB at  733.81KiB/s ETA 00:12
+[download]  70.4% of   28.74MiB at    1.14MiB/s ETA 00:07
+[download]  72.1% of   28.74MiB at    1.67MiB/s ETA 00:04
+[download]  75.6% of   28.74MiB at    2.37MiB/s ETA 00:02
+[download]  82.6% of   28.74MiB at    3.10MiB/s ETA 00:01
+[download]  96.5% of   28.74MiB at    3.80MiB/s ETA 00:00
+[download] 100.0% of   28.74MiB at    3.68MiB/s ETA 00:00
+[download] 100% of   28.74MiB in 00:00:08 at 3.56MiB/s
+[download] Destination: ..\tmp\5a2d41aa-f86d-4146-b03b-e0b8c5ee9b6e\How to film yourself cinematically (easy).f140.m4a
+[download]   0.0% of    7.23MiB at   59.15KiB/s ETA 02:05
+[download]   0.0% of    7.23MiB at  168.76KiB/s ETA 00:43
+[download]   0.1% of    7.23MiB at  380.14KiB/s ETA 00:19
+[download]   0.2% of    7.23MiB at  770.01KiB/s ETA 00:09
+[download]   0.4% of    7.23MiB at  371.30KiB/s ETA 00:19
+[download]   0.9% of    7.23MiB at  410.39KiB/s ETA 00:17
+[download]   1.7% of    7.23MiB at  485.33KiB/s ETA 00:15
+[download]   3.4% of    7.23MiB at  604.84KiB/s ETA 00:11
+[download]   6.9% of    7.23MiB at  958.68KiB/s ETA 00:07
+[download]  13.8% of    7.23MiB at    1.51MiB/s ETA 00:04
+[download]  27.6% of    7.23MiB at    2.37MiB/s ETA 00:02
+[download]  55.3% of    7.23MiB at    3.57MiB/s ETA 00:00
+[download] 100.0% of    7.23MiB at    4.38MiB/s ETA 00:00
+[download] 100% of    7.23MiB in 00:00:02 at 3.11MiB/s
+[Merger] Merging formats into "..\tmp\5a2d41aa-f86d-4146-b03b-e0b8c5ee9b6e\How to film yourself cinematically (easy).mp4"
+ERROR: [WinError 32] The process cannot access the file because it is being used by another process: '..\\tmp\\5a2d41aa-f86d-4146-b03b-e0b8c5ee9b6e\\How to film yourself cinematically (easy).temp.mp4' -> '..\\tmp\\5a2d41aa-f86d-4146-b03b-e0b8c5ee9b6e\\How to film yourself cinematically (easy).mp4'

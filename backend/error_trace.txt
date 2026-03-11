@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "C:\Users\Prajjwal\Downloads\Openclip\backend\api.py", line 227, in _run_pipeline
+    result = await asyncio.to_thread(
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3312.0_x64__qbz5n2kfra8p0\Lib\asyncio\threads.py", line 25, in to_thread
+    return await loop.run_in_executor(None, func_call)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.13_3.13.3312.0_x64__qbz5n2kfra8p0\Lib\concurrent\futures\thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "C:\Users\Prajjwal\Downloads\Openclip\backend\downloader.py", line 116, in download_video
+    raise RuntimeError(
+        f"yt-dlp exited with code {process.returncode} for URL: {url}"
+    )
+RuntimeError: yt-dlp exited with code 1 for URL: https://youtu.be/bGQ8YvgjoDk?si=NVAvFGJ_QE-Ol8kX

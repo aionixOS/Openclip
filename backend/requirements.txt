@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+yt-dlp
+aiosqlite
+pydantic
+python-multipart
+websockets
+python-dotenv
+openai-whisper
+httpx
+cryptography
+mediapipe
+tenacity
+Pillow
+numpy

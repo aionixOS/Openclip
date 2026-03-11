@@ -1,0 +1,21 @@
+
+> frontend@0.1.0 lint
+> eslint
+
+
+C:\Users\Prajjwal\Downloads\Openclip\frontend\app\create\page.tsx
+  19:11  warning  'router' is assigned a value but never used      @typescript-eslint/no-unused-vars
+  33:21  warning  'project_id' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Prajjwal\Downloads\Openclip\frontend\app\project\[id]\page.tsx
+  25:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Prajjwal\Downloads\Openclip\frontend\components\dashboard\ProjectCard.tsx
+  13:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\Prajjwal\Downloads\Openclip\frontend\lib\api.ts
+  49:37  warning  'youtube_url' is defined but never used  @typescript-eslint/no-unused-vars
+  53:37  warning  'id' is defined but never used           @typescript-eslint/no-unused-vars
+
+Γ£û 6 problems (2 errors, 4 warnings)
+
