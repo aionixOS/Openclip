@@ -2,7 +2,17 @@ import subprocess
 import json
 import os
 import math
+import sys
+import types
 from PIL import Image # type: ignore
+
+# mediapipe internally imports cv2 only for its drawing utilities (drawing_styles.py ->
+# drawing_utils.py). Our code never calls any drawing functions. We pre-stub cv2 in
+# sys.modules so the native OpenCV binary (and its libGL dependency) is never loaded.
+if 'cv2' not in sys.modules:
+    _cv2_stub = types.ModuleType('cv2')
+    sys.modules['cv2'] = _cv2_stub
+
 import mediapipe as mp # type: ignore
 from mediapipe.tasks import python # type: ignore
 from mediapipe.tasks.python import vision # type: ignore
