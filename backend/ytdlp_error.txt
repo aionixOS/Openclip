@@ -1,71 +1,168 @@
-[youtube] Extracting URL: https://youtu.be/bGQ8YvgjoDk?si=NVAvFGJ_QE-Ol8kX
-[youtube] bGQ8YvgjoDk: Downloading webpage
-[youtube] bGQ8YvgjoDk: Downloading web player API JSON
-[youtube] bGQ8YvgjoDk: Downloading android vr player API JSON
-[youtube] bGQ8YvgjoDk: Downloading web safari player API JSON
-[youtube] bGQ8YvgjoDk: Downloading player 9f4cc5e4-tv
+[youtube] Extracting URL: https://youtu.be/HWEB3NjWLak?si=uHGqdRlfjdWsdnkw
+[youtube] HWEB3NjWLak: Downloading webpage
+[youtube] HWEB3NjWLak: Downloading web player API JSON
+[youtube] HWEB3NjWLak: Downloading android vr player API JSON
+[youtube] HWEB3NjWLak: Downloading web safari player API JSON
+[youtube] HWEB3NjWLak: Downloading player 9f4cc5e4-tv
 [youtube] [jsc:node] Solving JS challenges using node
 WARNING: [youtube] [jsc] Remote component challenge solver script (node) was skipped. It may be required to solve JS challenges. You can enable the download with  --remote-components ejs:github  (recommended). For more information and alternatives, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS
-WARNING: [youtube] bGQ8YvgjoDk: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS
-[info] bGQ8YvgjoDk: Downloading 1 format(s): 399+140
-[download] Destination: ..\tmp\5a2d41aa-f86d-4146-b03b-e0b8c5ee9b6e\How to film yourself cinematically (easy).f399.mp4
-[download]   0.0% of   28.74MiB at   49.77KiB/s ETA 09:51
-[download]   0.0% of   28.74MiB at  137.76KiB/s ETA 03:33
-[download]   0.0% of   28.74MiB at  296.44KiB/s ETA 01:39
-[download]   0.1% of   28.74MiB at  599.77KiB/s ETA 00:49
-[download]   0.1% of   28.74MiB at  691.59KiB/s ETA 00:42
-[download]   0.2% of   28.74MiB at  801.77KiB/s ETA 00:36
-[download]   0.4% of   28.74MiB at  740.53KiB/s ETA 00:39
-[download]   0.9% of   28.74MiB at  937.94KiB/s ETA 00:31
-[download]   1.7% of   28.74MiB at    1.41MiB/s ETA 00:20
-[download]   3.5% of   28.74MiB at    1.99MiB/s ETA 00:13
-[download]   7.0% of   28.74MiB at    3.04MiB/s ETA 00:08
-[download]  13.9% of   28.74MiB at    3.62MiB/s ETA 00:06
-[download]  27.8% of   28.74MiB at    4.53MiB/s ETA 00:04
-[download]  34.7% of   28.74MiB at    4.89MiB/s ETA 00:03
-[download]  34.7% of   28.74MiB at  303.28KiB/s ETA 01:03
-[download]  34.7% of   28.74MiB at  751.40KiB/s ETA 00:25
-[download]  34.7% of   28.74MiB at    1.47MiB/s ETA 00:12
-[download]  34.7% of   28.74MiB at    2.67MiB/s ETA 00:07
-[download]  34.8% of   28.74MiB at    4.31MiB/s ETA 00:04
-[download]  34.9% of   28.74MiB at    6.26MiB/s ETA 00:02
-[download]  35.1% of   28.74MiB at    1.64MiB/s ETA 00:11
-[download]  35.6% of   28.74MiB at    2.66MiB/s ETA 00:06
-[download]  36.4% of   28.74MiB at    3.73MiB/s ETA 00:04
-[download]  38.2% of   28.74MiB at    4.97MiB/s ETA 00:03
-[download]  41.7% of   28.74MiB at    6.49MiB/s ETA 00:02
-[download]  48.6% of   28.74MiB at    5.76MiB/s ETA 00:02
-[download]  62.5% of   28.74MiB at    4.46MiB/s ETA 00:02
-[download]  68.6% of   28.74MiB at    4.43MiB/s ETA 00:02
-[download]  68.6% of   28.74MiB at  Unknown B/s ETA Unknown
-[download]  68.7% of   28.74MiB at    1.76MiB/s ETA 00:05
-[download]  68.7% of   28.74MiB at  121.15KiB/s ETA 01:16
-[download]  68.7% of   28.74MiB at  254.12KiB/s ETA 00:36
-[download]  68.7% of   28.74MiB at  325.67KiB/s ETA 00:28
-[download]  68.9% of   28.74MiB at  415.63KiB/s ETA 00:22
-[download]  69.1% of   28.74MiB at  580.31KiB/s ETA 00:15
-[download]  69.5% of   28.74MiB at  733.81KiB/s ETA 00:12
-[download]  70.4% of   28.74MiB at    1.14MiB/s ETA 00:07
-[download]  72.1% of   28.74MiB at    1.67MiB/s ETA 00:04
-[download]  75.6% of   28.74MiB at    2.37MiB/s ETA 00:02
-[download]  82.6% of   28.74MiB at    3.10MiB/s ETA 00:01
-[download]  96.5% of   28.74MiB at    3.80MiB/s ETA 00:00
-[download] 100.0% of   28.74MiB at    3.68MiB/s ETA 00:00
-[download] 100% of   28.74MiB in 00:00:08 at 3.56MiB/s
-[download] Destination: ..\tmp\5a2d41aa-f86d-4146-b03b-e0b8c5ee9b6e\How to film yourself cinematically (easy).f140.m4a
-[download]   0.0% of    7.23MiB at   59.15KiB/s ETA 02:05
-[download]   0.0% of    7.23MiB at  168.76KiB/s ETA 00:43
-[download]   0.1% of    7.23MiB at  380.14KiB/s ETA 00:19
-[download]   0.2% of    7.23MiB at  770.01KiB/s ETA 00:09
-[download]   0.4% of    7.23MiB at  371.30KiB/s ETA 00:19
-[download]   0.9% of    7.23MiB at  410.39KiB/s ETA 00:17
-[download]   1.7% of    7.23MiB at  485.33KiB/s ETA 00:15
-[download]   3.4% of    7.23MiB at  604.84KiB/s ETA 00:11
-[download]   6.9% of    7.23MiB at  958.68KiB/s ETA 00:07
-[download]  13.8% of    7.23MiB at    1.51MiB/s ETA 00:04
-[download]  27.6% of    7.23MiB at    2.37MiB/s ETA 00:02
-[download]  55.3% of    7.23MiB at    3.57MiB/s ETA 00:00
-[download] 100.0% of    7.23MiB at    4.38MiB/s ETA 00:00
-[download] 100% of    7.23MiB in 00:00:02 at 3.11MiB/s
-[Merger] Merging formats into "..\tmp\5a2d41aa-f86d-4146-b03b-e0b8c5ee9b6e\How to film yourself cinematically (easy).mp4"
-ERROR: [WinError 32] The process cannot access the file because it is being used by another process: '..\\tmp\\5a2d41aa-f86d-4146-b03b-e0b8c5ee9b6e\\How to film yourself cinematically (easy).temp.mp4' -> '..\\tmp\\5a2d41aa-f86d-4146-b03b-e0b8c5ee9b6e\\How to film yourself cinematically (easy).mp4'
+WARNING: [youtube] HWEB3NjWLak: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS
+[info] HWEB3NjWLak: Downloading 1 format(s): 399+140
+[download] Destination: ..\tmp\1f6363da-8929-447f-99d3-c2f3a7a9fdb5\iPad Air 42K  iPad 11 at 22K  Free Apple pencil  Best time to buy iPadBack to school Prime Sale.f399.mp4
+[download]   0.0% of   94.09MiB at   98.54KiB/s ETA 16:19
+[download]   0.0% of   94.09MiB at  272.24KiB/s ETA 05:54
+[download]   0.0% of   94.09MiB at  593.91KiB/s ETA 02:42
+[download]   0.0% of   94.09MiB at    1.10MiB/s ETA 01:25
+[download]   0.0% of   94.09MiB at  580.97KiB/s ETA 02:45
+[download]   0.1% of   94.09MiB at  541.77KiB/s ETA 02:57
+[download]   0.1% of   94.09MiB at  570.51KiB/s ETA 02:48
+[download]   0.3% of   94.09MiB at  913.19KiB/s ETA 01:45
+[download]   0.5% of   94.09MiB at    1.42MiB/s ETA 01:06
+[download]   1.1% of   94.09MiB at    2.28MiB/s ETA 00:40
+[download]   2.1% of   94.09MiB at    3.28MiB/s ETA 00:28
+[download]   4.3% of   94.09MiB at    3.82MiB/s ETA 00:23
+[download]   8.5% of   94.09MiB at    4.54MiB/s ETA 00:18
+[download]  10.2% of   94.09MiB at    4.47MiB/s ETA 00:18
+[download]  10.2% of   94.09MiB at   65.09KiB/s ETA 22:10
+[download]  10.2% of   94.09MiB at  183.11KiB/s ETA 07:52
+[download]  10.2% of   94.09MiB at  409.35KiB/s ETA 03:31
+[download]  10.2% of   94.09MiB at  838.06KiB/s ETA 01:43
+[download]  10.3% of   94.09MiB at    1.59MiB/s ETA 00:53
+[download]  10.3% of   94.09MiB at    3.08MiB/s ETA 00:27
+[download]  10.4% of   94.09MiB at    5.79MiB/s ETA 00:14
+[download]  10.5% of   94.09MiB at    7.36MiB/s ETA 00:11
+[download]  10.8% of   94.09MiB at    4.41MiB/s ETA 00:19
+[download]  11.3% of   94.09MiB at    6.18MiB/s ETA 00:13
+[download]  12.4% of   94.09MiB at    5.63MiB/s ETA 00:14
+[download]  14.5% of   94.09MiB at    5.03MiB/s ETA 00:16
+[download]  18.7% of   94.09MiB at    5.07MiB/s ETA 00:15
+[download]  20.6% of   94.09MiB at    4.91MiB/s ETA 00:15
+[download]  20.6% of   94.09MiB at  129.71KiB/s ETA 09:50
+[download]  20.6% of   94.09MiB at  355.24KiB/s ETA 03:35
+[download]  20.6% of   94.09MiB at  773.90KiB/s ETA 01:38
+[download]  20.6% of   94.09MiB at    1.50MiB/s ETA 00:49
+[download]  20.6% of   94.09MiB at    2.85MiB/s ETA 00:26
+[download]  20.6% of   94.09MiB at    4.84MiB/s ETA 00:15
+[download]  20.7% of   94.09MiB at    6.26MiB/s ETA 00:11
+[download]  20.8% of   94.09MiB at    6.58MiB/s ETA 00:11
+[download]  21.1% of   94.09MiB at    5.99MiB/s ETA 00:12
+[download]  21.6% of   94.09MiB at    6.93MiB/s ETA 00:10
+[download]  22.7% of   94.09MiB at    6.26MiB/s ETA 00:11
+[download]  24.8% of   94.09MiB at    5.52MiB/s ETA 00:12
+[download]  29.1% of   94.09MiB at    5.16MiB/s ETA 00:12
+[download]  31.2% of   94.09MiB at    5.23MiB/s ETA 00:12
+[download]  31.2% of   94.09MiB at  161.60KiB/s ETA 06:51
+[download]  31.2% of   94.09MiB at  430.74KiB/s ETA 02:34
+[download]  31.2% of   94.09MiB at  923.74KiB/s ETA 01:11
+[download]  31.2% of   94.09MiB at    1.66MiB/s ETA 00:38
+[download]  31.2% of   94.09MiB at    3.06MiB/s ETA 00:21
+[download]  31.2% of   94.09MiB at    4.07MiB/s ETA 00:15
+[download]  31.3% of   94.09MiB at    5.26MiB/s ETA 00:12
+[download]  31.4% of   94.09MiB at    2.58MiB/s ETA 00:24
+[download]  31.7% of   94.09MiB at    4.16MiB/s ETA 00:15
+[download]  32.2% of   94.09MiB at    4.66MiB/s ETA 00:13
+[download]  33.3% of   94.09MiB at    4.54MiB/s ETA 00:13
+[download]  35.4% of   94.09MiB at    5.02MiB/s ETA 00:12
+[download]  39.7% of   94.09MiB at    5.39MiB/s ETA 00:10
+[download]  41.3% of   94.09MiB at    5.50MiB/s ETA 00:10
+[download]  41.3% of   94.09MiB at  530.25KiB/s ETA 01:47
+[download]  41.3% of   94.09MiB at    1.08MiB/s ETA 00:51
+[download]  41.3% of   94.09MiB at    1.66MiB/s ETA 00:33
+[download]  41.4% of   94.09MiB at    2.66MiB/s ETA 00:20
+[download]  41.4% of   94.09MiB at    4.29MiB/s ETA 00:12
+[download]  41.4% of   94.09MiB at    4.39MiB/s ETA 00:12
+[download]  41.5% of   94.09MiB at    1.53MiB/s ETA 00:36
+[download]  41.6% of   94.09MiB at    2.78MiB/s ETA 00:19
+[download]  41.9% of   94.09MiB at    4.29MiB/s ETA 00:12
+[download]  42.4% of   94.09MiB at    5.51MiB/s ETA 00:09
+[download]  43.5% of   94.09MiB at    5.11MiB/s ETA 00:10
+[download]  45.6% of   94.09MiB at    5.28MiB/s ETA 00:09
+[download]  49.8% of   94.09MiB at    5.24MiB/s ETA 00:09
+[download]  51.6% of   94.09MiB at    5.32MiB/s ETA 00:08
+[download]  51.6% of   94.09MiB at  371.70KiB/s ETA 02:06
+[download]  51.6% of   94.09MiB at  687.82KiB/s ETA 01:08
+[download]  51.6% of   94.09MiB at    1.25MiB/s ETA 00:36
+[download]  51.6% of   94.09MiB at    1.87MiB/s ETA 00:24
+[download]  51.6% of   94.09MiB at    3.38MiB/s ETA 00:13
+[download]  51.6% of   94.09MiB at    4.47MiB/s ETA 00:10
+[download]  51.7% of   94.09MiB at    5.92MiB/s ETA 00:07
+[download]  51.8% of   94.09MiB at    4.80MiB/s ETA 00:09
+[download]  52.1% of   94.09MiB at    6.15MiB/s ETA 00:07
+[download]  52.6% of   94.09MiB at    6.30MiB/s ETA 00:07
+[download]  53.7% of   94.09MiB at    5.37MiB/s ETA 00:08
+[download]  55.8% of   94.09MiB at    5.37MiB/s ETA 00:07
+[download]  60.1% of   94.09MiB at    5.10MiB/s ETA 00:07
+[download]  61.9% of   94.09MiB at    5.23MiB/s ETA 00:06
+[download]  61.9% of   94.09MiB at   50.99KiB/s ETA 11:59
+[download]  61.9% of   94.09MiB at  145.75KiB/s ETA 04:11
+[download]  62.0% of   94.09MiB at  328.33KiB/s ETA 01:51
+[download]  62.0% of   94.09MiB at  664.61KiB/s ETA 00:55
+[download]  62.0% of   94.09MiB at    1.29MiB/s ETA 00:27
+[download]  62.0% of   94.09MiB at    2.53MiB/s ETA 00:14
+[download]  62.1% of   94.09MiB at    1.37MiB/s ETA 00:26
+[download]  62.2% of   94.09MiB at    2.36MiB/s ETA 00:15
+[download]  62.5% of   94.09MiB at    3.48MiB/s ETA 00:10
+[download]  63.0% of   94.09MiB at    4.84MiB/s ETA 00:07
+[download]  64.1% of   94.09MiB at    4.13MiB/s ETA 00:08
+[download]  66.2% of   94.09MiB at    4.72MiB/s ETA 00:06
+[download]  70.4% of   94.09MiB at    5.18MiB/s ETA 00:05
+[download]  72.2% of   94.09MiB at    4.99MiB/s ETA 00:05
+[download]  72.2% of   94.09MiB at   72.23KiB/s ETA 06:10
+[download]  72.2% of   94.09MiB at  201.20KiB/s ETA 02:13
+[download]  72.2% of   94.09MiB at  448.38KiB/s ETA 00:59
+[download]  72.2% of   94.09MiB at  915.01KiB/s ETA 00:29
+[download]  72.3% of   94.09MiB at    1.45MiB/s ETA 00:17
+[download]  72.3% of   94.09MiB at    2.81MiB/s ETA 00:09
+[download]  72.4% of   94.09MiB at    3.69MiB/s ETA 00:07
+[download]  72.5% of   94.09MiB at    1.80MiB/s ETA 00:14
+[download]  72.8% of   94.09MiB at    2.96MiB/s ETA 00:08
+[download]  73.3% of   94.09MiB at    3.48MiB/s ETA 00:07
+[download]  74.4% of   94.09MiB at    3.51MiB/s ETA 00:06
+[download]  76.5% of   94.09MiB at    4.00MiB/s ETA 00:05
+[download]  80.7% of   94.09MiB at    4.39MiB/s ETA 00:04
+[download]  82.8% of   94.09MiB at    4.37MiB/s ETA 00:03
+[download]  82.8% of   94.09MiB at  986.66KiB/s ETA 00:17
+[download]  82.8% of   94.09MiB at    1.35MiB/s ETA 00:12
+[download]  82.8% of   94.09MiB at    1.67MiB/s ETA 00:09
+[download]  82.8% of   94.09MiB at    2.92MiB/s ETA 00:05
+[download]  82.8% of   94.09MiB at    4.00MiB/s ETA 00:04
+[download]  82.9% of   94.09MiB at    4.41MiB/s ETA 00:03
+[download]  82.9% of   94.09MiB at    4.55MiB/s ETA 00:03
+[download]  83.1% of   94.09MiB at    5.28MiB/s ETA 00:03
+[download]  83.3% of   94.09MiB at    3.65MiB/s ETA 00:04
+[download]  83.9% of   94.09MiB at    4.16MiB/s ETA 00:03
+[download]  84.9% of   94.09MiB at    5.34MiB/s ETA 00:02
+[download]  87.0% of   94.09MiB at    5.11MiB/s ETA 00:02
+[download]  91.3% of   94.09MiB at    5.36MiB/s ETA 00:01
+[download]  93.2% of   94.09MiB at    5.45MiB/s ETA 00:01
+[download]  93.2% of   94.09MiB at  Unknown B/s ETA Unknown
+[download]  93.2% of   94.09MiB at  Unknown B/s ETA Unknown
+[download]  93.2% of   94.09MiB at    4.36MiB/s ETA 00:01
+[download]  93.2% of   94.09MiB at    5.74MiB/s ETA 00:01
+[download]  93.2% of   94.09MiB at    6.25MiB/s ETA 00:01
+[download]  93.2% of   94.09MiB at    6.66MiB/s ETA 00:00
+[download]  93.3% of   94.09MiB at    9.64MiB/s ETA 00:00
+[download]  93.4% of   94.09MiB at    2.18MiB/s ETA 00:02
+[download]  93.7% of   94.09MiB at    3.47MiB/s ETA 00:01
+[download]  94.2% of   94.09MiB at    4.78MiB/s ETA 00:01
+[download]  95.3% of   94.09MiB at    5.06MiB/s ETA 00:00
+[download]  97.4% of   94.09MiB at    5.12MiB/s ETA 00:00
+[download] 100.0% of   94.09MiB at    5.33MiB/s ETA 00:00
+[download] 100% of   94.09MiB in 00:00:20 at 4.53MiB/s
+[download] Destination: ..\tmp\1f6363da-8929-447f-99d3-c2f3a7a9fdb5\iPad Air 42K  iPad 11 at 22K  Free Apple pencil  Best time to buy iPadBack to school Prime Sale.f140.m4a
+[download]   0.0% of    5.02MiB at  258.46KiB/s ETA 00:19
+[download]   0.1% of    5.02MiB at  577.91KiB/s ETA 00:08
+[download]   0.1% of    5.02MiB at    1.20MiB/s ETA 00:04
+[download]   0.3% of    5.02MiB at    2.23MiB/s ETA 00:02
+[download]   0.6% of    5.02MiB at  427.05KiB/s ETA 00:11
+[download]   1.2% of    5.02MiB at  473.38KiB/s ETA 00:10
+[download]   2.5% of    5.02MiB at  633.63KiB/s ETA 00:07
+[download]   5.0% of    5.02MiB at  894.18KiB/s ETA 00:05
+[download]   9.9% of    5.02MiB at    1.29MiB/s ETA 00:03
+[download]  19.9% of    5.02MiB at    1.86MiB/s ETA 00:02
+[download]  39.8% of    5.02MiB at    2.44MiB/s ETA 00:01
+[download]  79.7% of    5.02MiB at    3.52MiB/s ETA 00:00
+[download] 100.0% of    5.02MiB at    3.60MiB/s ETA 00:00
+[download] 100% of    5.02MiB in 00:00:02 at 2.41MiB/s
+[Merger] Merging formats into "..\tmp\1f6363da-8929-447f-99d3-c2f3a7a9fdb5\iPad Air 42K  iPad 11 at 22K  Free Apple pencil  Best time to buy iPadBack to school Prime Sale.mp4"
+ERROR: [WinError 32] The process cannot access the file because it is being used by another process: '..\\tmp\\1f6363da-8929-447f-99d3-c2f3a7a9fdb5\\iPad Air 42K  iPad 11 at 22K  Free Apple pencil  Best time to buy iPadBack to school Prime Sale.temp.mp4' -> '..\\tmp\\1f6363da-8929-447f-99d3-c2f3a7a9fdb5\\iPad Air 42K  iPad 11 at 22K  Free Apple pencil  Best time to buy iPadBack to school Prime Sale.mp4'

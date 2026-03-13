@@ -2,7 +2,14 @@ export interface Project {
     id: string;
     youtube_url: string;
     title: string;
-    status: 'pending' | 'downloading' | 'processing' | 'done' | 'error';
+    status:
+        | 'pending'
+        | 'downloading'
+        | 'transcribing'
+        | 'analyzing'
+        | 'processing'
+        | 'done'
+        | 'error';
     created_at: string;
     clip_count?: number;
 }
@@ -20,6 +27,8 @@ export interface Clip {
     reason?: string
     viral_score?: number
     face_count?: number
+    hashtags?: string[]
+    tags?: string[]
 }
 
 export interface ProgressUpdate {
@@ -39,7 +48,7 @@ export interface Settings {
 export interface CaptionStyle {
     key: string;
     name: string;
-    animation: 'word_by_word' | 'highlight';
+    animation: 'word_by_word' | 'highlight' | 'one_word';
     preview_colors: {
         text: string;
         highlight: string | null;

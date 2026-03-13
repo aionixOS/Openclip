@@ -1,27 +1,85 @@
-"""
-transcriber.py — Transcript extraction for OpenClip.
+"""Transcript extraction pipeline.
 
-Provides two strategies for obtaining a transcript:
-
-1. **YouTube captions** (fast, free) — downloads the auto-generated or
-   manual subtitle track via ``yt-dlp --write-auto-sub`` and parses the
-   resulting ``.vtt`` file.
-2. **Local Whisper** (slow, accurate) — runs OpenAI's open-source Whisper
-   model on the audio to produce word-level timestamps.
-
-The public entry-point ``extract_transcript`` tries YouTube captions
-first and falls back to Whisper if none are available.
+Priority order:
+1) User-uploaded/manual YouTube captions
+2) Auto-generated YouTube captions
+3) yt-dlp subtitle extraction fallback
+4) Local Whisper fallback
 """
 
-import os
-import re
-import glob
 import asyncio
-import subprocess
+import glob
+import json
 import logging
+import os
+import subprocess
 from typing import Callable, Optional
+from urllib.parse import parse_qs, urlparse
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_ytdlp_exe() -> str:
+    """Resolve yt-dlp from local virtualenv first, then PATH."""
+    backend_dir = os.path.dirname(__file__)
+    candidates = [
+        os.path.join(backend_dir, ".venv", "Scripts", "yt-dlp.exe"),
+        os.path.join(backend_dir, "..", ".venv", "Scripts", "yt-dlp.exe"),
+    ]
+    for candidate in candidates:
+        resolved = os.path.abspath(candidate)
+        if os.path.isfile(resolved):
+            return resolved
+    return "yt-dlp"
+
+
+def _notify(
+    progress_callback: Optional[Callable[[float, str], None]],
+    percent: float,
+    message: str,
+) -> None:
+    if progress_callback is not None:
+        progress_callback(percent, message)
+
+
+def _extract_video_id(youtube_url: str) -> str:
+    """Extract canonical YouTube video id from common URL formats."""
+    parsed = urlparse(youtube_url)
+    host = parsed.netloc.lower()
+
+    if "youtu.be" in host:
+        return parsed.path.strip("/")
+
+    if "youtube.com" in host or "m.youtube.com" in host:
+        if parsed.path == "/watch":
+            return parse_qs(parsed.query).get("v", [""])[0]
+        if parsed.path.startswith("/shorts/"):
+            return parsed.path.split("/shorts/")[-1].split("/")[0]
+        if parsed.path.startswith("/embed/"):
+            return parsed.path.split("/embed/")[-1].split("/")[0]
+
+    return ""
+
+
+def _normalize_transcript_items(items: list[object]) -> list[dict]:
+    segments: list[dict] = []
+    for item in items:
+        if isinstance(item, dict):
+            text = str(item.get("text", "")).strip()
+            start = float(item.get("start", 0.0))
+            duration = float(item.get("duration", 0.0))
+        else:
+            text = str(getattr(item, "text", "")).strip()
+            start = float(getattr(item, "start", 0.0))
+            duration = float(getattr(item, "duration", 0.0))
+
+        if not text:
+            continue
+
+        end = max(start + duration, start + 0.2)
+        segments.append({"start": start, "end": end, "text": text})
+
+    return segments
 
 
 # ---------------------------------------------------------------------------
@@ -31,6 +89,7 @@ logger = logging.getLogger(__name__)
 async def extract_captions(
     youtube_url: str,
     video_path: str,
+    progress_callback: Optional[Callable[[float, str], None]] = None,
 ) -> list[dict]:
     """
     Extract a transcript for the given video.
@@ -47,19 +106,88 @@ async def extract_captions(
 
             [{"start": 0.0, "end": 5.2, "text": "Hey welcome back..."}, ...]
     """
-    # Priority 1: Creator captions
+    _notify(progress_callback, 5, "Checking user-provided captions...")
+    logger.info("Trying transcript API manual captions...")
+    result = await _get_transcript_api_captions(youtube_url, generated=False)
+    if result:
+        logger.info("Found transcript API manual captions (%d segments)", len(result))
+        _notify(progress_callback, 25, "Using user-provided captions")
+        return result
+    logger.info("No transcript API manual captions found")
+
+    _notify(progress_callback, 30, "Checking auto-generated captions...")
+    logger.info("Trying transcript API auto captions...")
+    result = await _get_transcript_api_captions(youtube_url, generated=True)
+    if result:
+        logger.info("Found transcript API auto captions (%d segments)", len(result))
+        _notify(progress_callback, 55, "Using auto-generated captions")
+        return result
+    logger.info("No transcript API auto captions found")
+
+    _notify(progress_callback, 60, "Fallback: yt-dlp manual captions...")
     result = await _get_manual_captions(youtube_url)
     if result:
+        _notify(progress_callback, 75, "Using yt-dlp manual captions")
         return result
 
-    # Priority 2: Auto-generated captions
+    _notify(progress_callback, 80, "Fallback: yt-dlp auto captions...")
     result = await _get_auto_captions(youtube_url)
     if result:
+        _notify(progress_callback, 90, "Using yt-dlp auto captions")
         return result
 
-    # Priority 3: Whisper fallback
+    _notify(progress_callback, 92, "No YouTube captions found. Running Whisper...")
     logger.info("Falling back to Whisper transcription...")
-    return await _get_whisper_transcript(video_path)
+    segments = await _get_whisper_transcript(video_path)
+    if segments:
+        _notify(progress_callback, 100, "Whisper transcription complete")
+    return segments
+
+
+async def _get_transcript_api_captions(youtube_url: str, generated: bool) -> list[dict]:
+    """Fetch captions via YouTube Transcript API (fast path)."""
+
+    def _fetch() -> list[dict]:
+        try:
+            from youtube_transcript_api import YouTubeTranscriptApi  # type: ignore
+        except Exception:
+            logger.info("youtube-transcript-api not installed")
+            return []
+
+        video_id = _extract_video_id(youtube_url)
+        if not video_id:
+            logger.warning("Could not parse YouTube video id from URL: %s", youtube_url)
+            return []
+
+        try:
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        except Exception as exc:
+            logger.info("Transcript API list failed: %s", exc)
+            return []
+
+        language_candidates = ["en", "en-US", "en-GB"]
+
+        try:
+            if generated:
+                transcript = transcript_list.find_generated_transcript(language_candidates)
+            else:
+                transcript = transcript_list.find_manually_created_transcript(language_candidates)
+            return _normalize_transcript_items(list(transcript.fetch()))
+        except Exception:
+            pass
+
+        # Fallback: use any transcript matching generated/manual mode.
+        try:
+            for transcript in transcript_list:
+                is_generated = bool(getattr(transcript, "is_generated", False))
+                if is_generated == generated:
+                    return _normalize_transcript_items(list(transcript.fetch()))
+        except Exception:
+            return []
+
+        return []
+
+    return await asyncio.to_thread(_fetch)
 
 
 # ---------------------------------------------------------------------------
@@ -75,26 +203,41 @@ async def _get_manual_captions(youtube_url: str) -> list[dict]:
     output_template = os.path.join(work_dir, "%(id)s")
 
     cmd = [
-        r"C:\Users\Prajjwal\Downloads\Openclip\backend\.venv\Scripts\yt-dlp.exe",
+        _resolve_ytdlp_exe(),
+        "--no-playlist",
+        "--ignore-config",
+        "--no-warnings",
         "--write-sub",
         "--skip-download",
+        "--js-runtimes", "node",
+        "--extractor-args", "youtube:player_client=web,default",
         "--sub-format", "json3",
         "--sub-langs", "en.*,en",
+        "--socket-timeout", "30",
         "-o", output_template,
         youtube_url,
     ]
 
+    env = os.environ.copy()
+    env["PATH"] = env.get("PATH", "") + r";C:\Program Files\nodejs;C:\Users\Prajjwal\Downloads\Openclip\backend\bin"
+
     try:
+        logger.info("Running yt-dlp for manual captions...")
         result = await asyncio.to_thread(
             subprocess.run, cmd, capture_output=True, text=True, timeout=60,  # type: ignore
-            encoding="utf-8", errors="replace"
+            encoding="utf-8", errors="replace", env=env
         )
+        logger.info("yt-dlp manual captions exited with code %d", result.returncode)
         if result.returncode != 0:
             return []
         json_files = glob.glob(os.path.join(work_dir, "*.json3"))
         if not json_files:
+            logger.info("No manual caption files found")
             return []
         return _parse_json3(json_files[0])
+    except subprocess.TimeoutExpired:
+        logger.warning("YouTube manual caption extraction timed out")
+        return []
     except Exception as exc:
         logger.warning("YouTube manual caption extraction failed: %s", exc)
         return []
@@ -108,13 +251,17 @@ async def _get_auto_captions(youtube_url: str) -> list[dict]:
     output_template = os.path.join(work_dir, "%(id)s")
 
     cmd = [
-        r"C:\Users\Prajjwal\Downloads\Openclip\backend\.venv\Scripts\yt-dlp.exe",
+        _resolve_ytdlp_exe(),
+        "--no-playlist",
+        "--ignore-config",
+        "--no-warnings",
         "--write-auto-sub",
         "--skip-download",
         "--js-runtimes", "node",
         "--extractor-args", "youtube:player_client=web,default",
         "--sub-format", "json3",
         "--sub-langs", "en.*,en",
+        "--socket-timeout", "30",
         "-o", output_template,
         youtube_url,
     ]
@@ -123,16 +270,23 @@ async def _get_auto_captions(youtube_url: str) -> list[dict]:
     env["PATH"] = env.get("PATH", "") + r";C:\Program Files\nodejs;C:\Users\Prajjwal\Downloads\Openclip\backend\bin"
 
     try:
+        logger.info("Running yt-dlp for auto-captions: %s", " ".join(cmd))
         result = await asyncio.to_thread(
-            subprocess.run, cmd, capture_output=True, text=True, timeout=60,  # type: ignore
+            subprocess.run, cmd, capture_output=True, text=True, timeout=90,  # type: ignore
             encoding="utf-8", errors="replace", env=env,
         )
+        logger.info("yt-dlp auto-captions exited with code %d", result.returncode)
         if result.returncode != 0:
+            logger.warning("yt-dlp stderr: %s", result.stderr[:500] if result.stderr else "none")
             return []
         json_files = glob.glob(os.path.join(work_dir, "*.json3"))
         if not json_files:
+            logger.warning("No JSON3 subtitle files found in %s", work_dir)
             return []
         return _parse_json3(json_files[0])
+    except subprocess.TimeoutExpired:
+        logger.warning("YouTube auto caption extraction timed out after 90s")
+        return []
     except Exception as exc:
         logger.warning("YouTube auto caption extraction failed: %s", exc)
         return []
@@ -141,8 +295,6 @@ async def _get_auto_captions(youtube_url: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 # JSON3 parser
 # ---------------------------------------------------------------------------
-
-import json
 
 def _parse_json3(json_path: str) -> list[dict]:
     """

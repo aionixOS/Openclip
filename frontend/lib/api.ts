@@ -70,6 +70,12 @@ export async function getCaptionStyles(): Promise<CaptionStyle[]> {
             name: "TikTok Style",
             animation: "highlight",
             preview_colors: { text: "#FFFFFF", highlight: "#FFFF00", background: null }
+        },
+        {
+            key: "viral_word",
+            name: "Viral Word",
+            animation: "one_word",
+            preview_colors: { text: "#FFFFFF", highlight: null, background: null }
         }
         // Integration agent will replace with real API call
     ]);

@@ -71,6 +71,26 @@ export function ClipCard({ clip, baseUrl }: ClipCardProps) {
                             {clip.reason}
                         </p>
                     )}
+
+                    {clip.hashtags && clip.hashtags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                            {clip.hashtags.map((tag, i) => (
+                                <span key={i} className="text-[11px] font-medium text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">
+                                    {tag}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+
+                    {clip.tags && clip.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-2">
+                            {clip.tags.map((tag, i) => (
+                                <span key={i} className="text-[11px] text-gray-400 bg-gray-700/50 px-1.5 py-0.5 rounded">
+                                    {tag}
+                                </span>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-[var(--border)] flex gap-2">

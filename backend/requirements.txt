@@ -13,3 +13,5 @@ mediapipe
 tenacity
 Pillow
 numpy
+youtube-transcript-api
+google-genai

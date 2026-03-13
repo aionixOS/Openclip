@@ -102,8 +102,11 @@ def _detect_audio_energy(
   vid_width: int,
   vid_height: int
 ) -> list[tuple[int, float]]:
+  ffmpeg_path = os.path.expandvars(
+      r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin\ffmpeg.exe"
+  )
   cmd = [
-    r"C:\Users\Prajjwal\Downloads\Openclip\backend\bin\ffmpeg.exe", "-i", video_path,
+    ffmpeg_path, "-i", video_path,
     "-af", (
       "astats=metadata=1:reset=1,"
       "ametadata=print:key=lavfi.astats.Overall.RMS_level"

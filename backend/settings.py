@@ -89,7 +89,7 @@ async def get_setting(key: str) -> Optional[str]:
         row = await cursor.fetchone()
         if not row:
             if key == "caption_style":
-                return "none"
+                return "viral_word"
             return None
         value = row[0] # type: ignore
         if key in _ENCRYPTED_KEYS and value:
@@ -150,7 +150,7 @@ async def get_all_settings() -> Dict[str, Any]:
                 result[k] = v
 
         if "caption_style" not in result:
-            result["caption_style"] = "none"
+            result["caption_style"] = "viral_word"
 
     except Exception as exc:
         raise RuntimeError(f"Failed to read settings: {exc}") from exc

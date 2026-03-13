@@ -112,6 +112,22 @@ CAPTION_STYLES: Dict[str, Dict[str, Any]] = {
     "animation": "word_by_word",
     "max_chars_per_line": 28,
     "highlight_color": None
+  },
+  "viral_word": {
+    "name": "Viral Word",
+    "font": "Arial-Black",
+    "fontsize": 95,
+    "primary_color": "&H00FFFFFF",
+    "outline_color": "&H00000000",
+    "outline_width": 8,
+    "shadow": 3,
+    "shadow_color": "&H55000000",
+    "background": False,
+    "animation": "one_word",
+    "max_chars_per_line": 8,
+    "highlight_color": None,
+    "uppercase": True,
+    "letter_spacing": 2
   }
 }
 
@@ -285,6 +301,9 @@ def _write_ass_file(ass_path: str, groups: List[Dict[str, Any]], style: Dict[str
 
     bg_color = style.get('bg_color', '&H00000000')
     border_style = 4 if style.get('background') else 1
+    # Use shadow_color as BackColour when in outline mode (no background)
+    back_colour = bg_color if style.get('background') else style.get('shadow_color', bg_color)
+    spacing = style.get('letter_spacing', 0)
 
     header = f"""[Script Info]
 ScriptType: v4.00+
@@ -294,7 +313,7 @@ WrapStyle: 1
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{font},{fontsize},{primary},{highlight},{outline},{bg_color},{bold},0,0,0,100,100,0,0,{border_style},{outline_w},{shadow},2,80,80,120,1
+Style: Default,{font},{fontsize},{primary},{highlight},{outline},{back_colour},{bold},0,0,0,100,100,{spacing},0,{border_style},{outline_w},{shadow},2,80,80,120,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -373,6 +392,32 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                     f"Default,,0,0,0,,{text}\n"
                 )
 
+        elif animation == 'one_word':
+            # Show each word ALONE (not building up)
+            for i, word_data in enumerate(group['words']):
+                word_text = word_data['word'].upper()
+                start_time = float(word_data['start'])
+                start_ts = seconds_to_ass(start_time)
+
+                # End at start of next word, or clamp at group end
+                if i + 1 < len(group['words']):
+                    end_time = float(group['words'][i + 1]['start'])
+                else:
+                    end_time = float(group['end'])
+                    if g_idx + 1 < len(groups):
+                        next_words: list = groups[g_idx + 1].get('words', [])
+                        if next_words:
+                            end_time = min(end_time, float(next_words[0]['start']))
+                    # Force remove shortly after last word (max 0.6s)
+                    end_time = min(end_time, start_time + 0.6)
+
+                end_ts = seconds_to_ass(end_time)
+                text = f"{{\\pos(540,1500)\\fscx105\\fscy105}}{word_text}"
+                lines.append(
+                    f"Dialogue: 0,{start_ts},{end_ts},"
+                    f"Default,,0,0,0,,{text}\n"
+                )
+
     with open(ass_path, 'w', encoding='utf-8') as f:
         f.writelines(lines)
 
@@ -381,8 +426,11 @@ async def _burn_ass_to_video(input_path: str, ass_path: str, output_path: str) -
     # to avoid escaping issues. Or we can use relative paths if we set cwd.
     # Let's fix the path for ffmpeg filter: replace \ with / and escape : as \:
     safe_ass_path = ass_path.replace("\\", "/").replace(":", "\\:")
+    ffmpeg_path = os.path.expandvars(
+        r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin\ffmpeg.exe"
+    )
     cmd = [
-        "ffmpeg", "-i", input_path,
+        ffmpeg_path, "-i", input_path,
         "-vf", f"ass='{safe_ass_path}'",
         "-c:a", "copy",
         output_path, "-y"
@@ -413,7 +461,7 @@ async def burn_captions(video_path: str, full_transcript: List[Dict[str, Any]], 
     caption_groups = _build_caption_groups(clip_segments, max_chars)
 
     # Step 3 — Generate word timing if animation needs it
-    if style['animation'] in ['word_by_word', 'highlight']:
+    if style['animation'] in ['word_by_word', 'highlight', 'one_word']:
         caption_groups = _add_word_timing(caption_groups)
 
     # Step 4 — Build ASS file

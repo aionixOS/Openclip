@@ -98,8 +98,11 @@ def _extract_sample_frames(video_path: str) -> list[Image.Image]:
   Extract 1 frame per second as raw bytes using FFmpeg.
   No temp files — pipe directly to memory.
   """
+  ffmpeg_path = os.path.expandvars(
+      r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin\ffmpeg.exe"
+  )
   result = subprocess.run([
-    r"C:\Users\Prajjwal\Downloads\Openclip\backend\bin\ffmpeg.exe", "-i", video_path,
+    ffmpeg_path, "-i", video_path,
     "-vf", "fps=1",
     "-f", "image2pipe",
     "-vcodec", "mjpeg",
@@ -312,8 +315,11 @@ async def _reframe_dynamic_zoom(
       f"pad=1080:1920:(ow-iw)/2:(oh-ih)/2"
     )
 
+    ffmpeg_path = os.path.expandvars(
+        r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin\ffmpeg.exe"
+    )
     cmd = [
-      r"C:\Users\Prajjwal\Downloads\Openclip\backend\bin\ffmpeg.exe",
+      ffmpeg_path,
       "-i", input_path,
       "-vf", filter_cx,
       "-c:a", "copy",
@@ -366,8 +372,11 @@ async def _reframe_static_fallback(
       f"pad=1080:1920:(ow-iw)/2:(oh-ih)/2"
   )
 
+  ffmpeg_path = os.path.expandvars(
+      r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin\ffmpeg.exe"
+  )
   cmd = [
-    r"C:\Users\Prajjwal\Downloads\Openclip\backend\bin\ffmpeg.exe", "-i", input_path,
+    ffmpeg_path, "-i", input_path,
     "-vf", filter_cx,
     "-c:a", "copy", output_path, "-y"
   ]
@@ -382,8 +391,11 @@ def _get_video_dimensions(video_path: str) -> tuple[int, int]:
   """
   Use ffprobe to get width and height.
   """
+  ffprobe_path = os.path.expandvars(
+      r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin\ffprobe.exe"
+  )
   cmd = [
-      r"C:\Users\Prajjwal\Downloads\Openclip\backend\bin\ffprobe.exe", 
+      ffprobe_path, 
       "-v", "error", "-select_streams", "v:0", 
       "-show_entries", "stream=width,height", "-of", "json", video_path
   ]
@@ -404,8 +416,11 @@ async def _cut_raw_clip(
   ffmpeg -ss {start} -i {video_path} ...
   """
   duration = end - start
+  ffmpeg_path = os.path.expandvars(
+      r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin\ffmpeg.exe"
+  )
   cmd = [
-      r"C:\Users\Prajjwal\Downloads\Openclip\backend\bin\ffmpeg.exe", "-y", "-ss", str(start), "-i", video_path,
+      ffmpeg_path, "-y", "-ss", str(start), "-i", video_path,
       "-t", str(duration), "-c", "copy", output_path
   ]
   result = subprocess.run(cmd, capture_output=True, text=True)

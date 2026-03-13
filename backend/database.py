@@ -15,6 +15,7 @@ How it works:
 import aiosqlite  # type: ignore
 import uuid
 import os
+import json
 from typing import Optional
 from dotenv import load_dotenv  # type: ignore
 
@@ -81,6 +82,8 @@ async def init_db() -> None:
                 layout_mode TEXT,
                 caption_style TEXT,
                 needs_user_confirm BOOLEAN NOT NULL DEFAULT 0,
+                hashtags TEXT,
+                tags TEXT,
                 created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (project_id) REFERENCES projects(id)
             );
@@ -94,7 +97,7 @@ async def init_db() -> None:
         await conn.commit()
 
         # --- Migrations: add columns if they don't exist yet -----------
-        for col in ("title", "reason", "viral_score", "face_count", "layout_mode", "caption_style", "needs_user_confirm"):
+        for col in ("title", "reason", "viral_score", "face_count", "layout_mode", "caption_style", "needs_user_confirm", "hashtags", "tags"):
             try:
                 col_type = "BOOLEAN" if col == "needs_user_confirm" else ("INTEGER" if col in ["viral_score", "face_count"] else "TEXT")
                 await conn.execute(
@@ -276,6 +279,8 @@ async def get_project(project_id: str) -> Optional[dict]:
                 "layout_mode": c["layout_mode"] if "layout_mode" in c.keys() else "none",
                 "caption_style": c["caption_style"] if "caption_style" in c.keys() else "none",
                 "needs_user_confirm": bool(c["needs_user_confirm"]) if "needs_user_confirm" in c.keys() else False,
+                "hashtags": json.loads(c["hashtags"]) if "hashtags" in c.keys() and c["hashtags"] else [],
+                "tags": json.loads(c["tags"]) if "tags" in c.keys() and c["tags"] else [],
                 "created_at": c["created_at"],
             }
             for c in clip_rows
@@ -301,6 +306,8 @@ async def save_clip(
     caption_style: Optional[str] = None,
     needs_user_confirm: bool = False,
     reframed: bool = True,
+    hashtags: Optional[list] = None,
+    tags: Optional[list] = None,
 ) -> dict:
     """
     Insert a new clip row for a project.
@@ -323,13 +330,15 @@ async def save_clip(
     """
     clip_id = str(uuid.uuid4())
     duration = end_time - start_time
+    hashtags_json = json.dumps(hashtags) if hashtags else None
+    tags_json = json.dumps(tags) if tags else None
     conn = await _get_connection()
     try:
         await conn.execute(
             """INSERT INTO clips
-               (id, project_id, file_path, start_time, end_time, duration, title, reason, viral_score, face_count, layout_mode, caption_style, needs_user_confirm, reframed)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (clip_id, project_id, file_path, start_time, end_time, duration, title, reason, viral_score, face_count, layout_mode, caption_style, int(needs_user_confirm), int(reframed)),
+               (id, project_id, file_path, start_time, end_time, duration, title, reason, viral_score, face_count, layout_mode, caption_style, needs_user_confirm, reframed, hashtags, tags)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (clip_id, project_id, file_path, start_time, end_time, duration, title, reason, viral_score, face_count, layout_mode, caption_style, int(needs_user_confirm), int(reframed), hashtags_json, tags_json),
         )
         await conn.commit()
         ret = {
@@ -348,6 +357,8 @@ async def save_clip(
             "layout_mode": layout_mode,
             "caption_style": caption_style,
             "needs_user_confirm": needs_user_confirm,
+            "hashtags": hashtags or [],
+            "tags": tags or [],
         }
     except Exception as exc:
         raise RuntimeError(f"Failed to save clip: {exc}") from exc

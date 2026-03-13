@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ComponentType } from "react";
 import { Project } from "@/lib/types";
 import { Trash2, Scissors, Clock, AlertCircle, CheckCircle2, Loader2, DownloadCloud } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -10,16 +11,28 @@ interface ProjectCardProps {
     onDelete: (id: string) => void;
 }
 
-const statusConfig: Record<Project['status'], { label: string; icon: React.ElementType; className: string }> = {
+type StatusConfig = {
+    label: string;
+    icon: ComponentType<{ className?: string }>;
+    className: string;
+};
+
+const statusConfig: Record<Project['status'], StatusConfig> = {
     pending: { label: "Pending", icon: Clock, className: "bg-gray-500/10 text-gray-400 border-gray-500/20" },
     downloading: { label: "Downloading", icon: DownloadCloud, className: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+    transcribing: { label: "Transcribing", icon: Loader2, className: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" },
+    analyzing: { label: "Analyzing", icon: Loader2, className: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" },
     processing: { label: "Processing", icon: Loader2, className: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" },
     done: { label: "Done", icon: CheckCircle2, className: "bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20" },
     error: { label: "Error", icon: AlertCircle, className: "bg-[var(--error)]/10 text-[var(--error)] border-[var(--error)]/20" },
 };
 
 export function ProjectCard({ project, onDelete }: ProjectCardProps) {
-    const config = statusConfig[project.status];
+    const config = statusConfig[project.status as keyof typeof statusConfig] ?? {
+        label: project.status,
+        icon: Clock,
+        className: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+    };
     const Icon = config.icon;
 
     const formattedDate = new Intl.DateTimeFormat('en-US', {
@@ -54,7 +67,7 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
             <Link href={`/project/${project.id}`} className="block mt-6">
                 <div className="flex items-center justify-between text-sm">
                     <div className={cn("inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-xs font-semibold", config.className)}>
-                        <Icon className={cn("h-3.5 w-3.5", project.status === 'processing' || project.status === 'downloading' ? 'animate-spin' : '')} />
+                        <Icon className={cn("h-3.5 w-3.5", project.status === 'processing' || project.status === 'downloading' || project.status === 'transcribing' || project.status === 'analyzing' ? 'animate-spin' : '')} />
                         {config.label}
                     </div>
 

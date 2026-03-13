@@ -21,9 +21,24 @@ import re
 import json
 import glob
 import logging
+import time
 from typing import Callable, Optional
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_ytdlp_exe() -> str:
+    """Resolve yt-dlp from local virtualenv first, then PATH."""
+    backend_dir = os.path.dirname(__file__)
+    candidates = [
+        os.path.join(backend_dir, ".venv", "Scripts", "yt-dlp.exe"),
+        os.path.join(backend_dir, "..", ".venv", "Scripts", "yt-dlp.exe"),
+    ]
+    for candidate in candidates:
+        resolved = os.path.abspath(candidate)
+        if os.path.isfile(resolved):
+            return resolved
+    return "yt-dlp"
 
 
 # ---------------------------------------------------------------------------
@@ -55,18 +70,40 @@ def download_video(
                       or if the download produces no output file.
     """
     os.makedirs(output_dir, exist_ok=True)
+    
+    # Clean up any leftover temp files from previous failed downloads
+    patterns_to_clean = ["*.temp.*", "*.part", "*.f*.mp4", "*.f*.m4a", "*.ytdl"]
+    for pattern in patterns_to_clean:
+        for f in glob.glob(os.path.join(output_dir, pattern)):
+            try:
+                os.remove(f)
+                logger.debug("Cleaned up: %s", f)
+            except:
+                pass
 
     # Output template — save as MP4 with sanitised title
     output_template = os.path.join(output_dir, "%(title)s.%(ext)s")
 
+    # Path to ffmpeg (winget install location)
+    ffmpeg_dir = os.path.expandvars(
+        r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin"
+    )
+
     cmd = [
-        r"C:\Users\Prajjwal\Downloads\Openclip\backend\.venv\Scripts\yt-dlp.exe",
+        _resolve_ytdlp_exe(),
         "--newline",
         "--js-runtimes", "node",
         "--extractor-args", "youtube:player_client=web,default",
-        "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/mp4",
+        # Prefer best video+audio up to 1080p, fallback to single-file MP4
+        "-f", "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
         "--merge-output-format", "mp4",
-        "--no-part",
+        "--no-mtime",
+        "--ffmpeg-location", ffmpeg_dir,
+        "--retries", "5",
+        "--file-access-retries", "10",
+        "--restrict-filenames",
+        "--force-overwrites",
+        "--windows-filenames",
         "-o", output_template,
         "--compat-options", "no-keep-subs,no-live-chat",
         url,
@@ -111,12 +148,21 @@ def download_video(
 
     process.wait()
 
+    # Small delay to let Windows release file handles
+    time.sleep(1)
+
     if process.returncode != 0:
-        with open("ytdlp_error.txt", "w") as f:
-            f.writelines(output_lines)
-        raise RuntimeError(
-            f"yt-dlp exited with code {process.returncode} for URL: {url}"
-        )
+        # Check if the file was actually created despite the error
+        # (happens when merge fails but files exist)
+        downloaded_files = glob.glob(os.path.join(output_dir, "*.mp4"))
+        if downloaded_files:
+            logger.warning("yt-dlp exited with code %d but MP4 file exists, continuing...", process.returncode)
+        else:
+            with open("ytdlp_error.txt", "w") as f:
+                f.writelines(output_lines)
+            raise RuntimeError(
+                f"yt-dlp exited with code {process.returncode} for URL: {url}"
+            )
 
     # Locate the downloaded file
     downloaded_files = glob.glob(os.path.join(output_dir, "*.mp4"))
@@ -190,8 +236,11 @@ def _get_duration(file_path: str) -> float:
     Raises:
         RuntimeError: If ffprobe fails.
     """
+    ffprobe_path = os.path.expandvars(
+        r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin\ffprobe.exe"
+    )
     cmd = [
-        r"C:\Users\Prajjwal\Downloads\Openclip\backend\bin\ffprobe.exe",
+        ffprobe_path,
         "-v", "quiet",
         "-print_format", "json",
         "-show_format",

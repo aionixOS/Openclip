@@ -44,8 +44,11 @@ def get_video_duration(file_path: str) -> float:
     Raises:
         RuntimeError: If ffprobe fails or cannot parse the duration.
     """
+    ffprobe_path = os.path.expandvars(
+        r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin\ffprobe.exe"
+    )
     cmd = [
-        r"C:\Users\Prajjwal\Downloads\Openclip\backend\bin\ffprobe.exe",
+        ffprobe_path,
         "-v", "quiet",
         "-print_format", "json",
         "-show_format",
@@ -103,8 +106,11 @@ def cut_clip(
     duration = end - start
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
+    ffmpeg_path = os.path.expandvars(
+        r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin\ffmpeg.exe"
+    )
     cmd = [
-        r"C:\Users\Prajjwal\Downloads\Openclip\backend\bin\ffmpeg.exe",
+        ffmpeg_path,
         "-y",                  # overwrite without asking
         "-ss", str(start),
         "-i", input_path,

@@ -175,6 +175,8 @@ class ClipResponse(BaseModel):
     reason: Optional[str] = None
     layout_mode: Optional[str] = None
     needs_user_confirm: bool = False
+    hashtags: list[str] = []
+    tags: list[str] = []
     created_at: str
 
 
@@ -250,7 +252,9 @@ async def _run_pipeline(project_id: str, youtube_url: str) -> None:
             )
 
         transcript_segments = await transcriber.extract_captions(
-            youtube_url, file_path
+            youtube_url,
+            file_path,
+            progress_callback=transcript_progress,
         )
         
         if not transcript_segments:
@@ -346,7 +350,9 @@ async def _run_pipeline(project_id: str, youtube_url: str) -> None:
                 layout_mode=clip.get("layout_mode"),
                 caption_style=clip.get("caption_style"),
                 needs_user_confirm=clip.get("needs_user_confirm", False),
-                reframed=clip.get("reframed", True)
+                reframed=clip.get("reframed", True),
+                hashtags=suggestion.get("hashtags", []),
+                tags=suggestion.get("tags", []),
             )
 
         await database.update_project_status(project_id, "done")

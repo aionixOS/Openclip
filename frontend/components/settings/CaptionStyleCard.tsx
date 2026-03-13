@@ -5,7 +5,7 @@ import { CaptionStyle } from "@/lib/types";
 export interface CaptionStyleCardProps {
     styleKey: string;
     name: string;
-    animation: 'word_by_word' | 'highlight';
+    animation: 'word_by_word' | 'highlight' | 'one_word';
     previewColors: {
         text: string;
         highlight: string | null;
@@ -49,6 +49,10 @@ export function CaptionStyleCard({
                 >
                     {styleKey === "none" ? (
                         <span className="text-gray-600 font-mono text-sm">(No captions)</span>
+                    ) : animation === "one_word" ? (
+                        <h3 className="text-2xl font-black uppercase tracking-wider">
+                            <span style={{ color: previewColors.text }}>QUICK</span>
+                        </h3>
                     ) : (
                         <h3 className="text-xl font-bold uppercase tracking-wide">
                             {animation === "highlight" ? (
@@ -66,7 +70,7 @@ export function CaptionStyleCard({
                 {/* Badge */}
                 <div className="mt-auto">
                     <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-800 text-gray-300">
-                        {animation === 'word_by_word' ? "◾ Word Pop" : "▶ Highlight"}
+                        {animation === 'word_by_word' ? "◾ Word Pop" : animation === 'one_word' ? "⚡ One Word" : "▶ Highlight"}
                     </span>
                 </div>
             </div>
