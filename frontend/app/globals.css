@@ -1,22 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: #0a0a0a;
-    --surface: #111111;
-    --foreground: #ededed;
-    --border: #222222;
-    --accent: #ffffff;
-    --error: #ff4444;
+    --primary: #2e1ded;
+    --accent-purple: #8b5cf6;
+    --background: #000000;
     --success: #3ecf8e;
-    --radius: 0.5rem;
+    --error: #f87171;
+  }
+
+  html {
+    background-color: #000000;
+  }
+
+  body {
+    @apply bg-black text-slate-100 antialiased min-h-screen;
+    font-family: 'Space Grotesk', sans-serif;
   }
 }
 
-@layer base {
-  body {
-    @apply bg-[var(--background)] text-[var(--foreground)] antialiased min-h-screen flex flex-col;
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-dark {
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .glass-hover:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .glass-card {
+    background: rgba(46, 29, 237, 0.05);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(139, 92, 246, 0.12);
+  }
+
+  .glow-primary {
+    box-shadow: 0 0 30px rgba(46, 29, 237, 0.4);
+  }
+
+  .text-gradient {
+    @apply text-transparent bg-clip-text;
+    background-image: linear-gradient(to right, #2e1ded, #8b5cf6);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #2e1ded;
+    border-radius: 10px;
   }
 }

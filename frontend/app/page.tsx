@@ -1,103 +1,287 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { Plus, Scissors } from "lucide-react";
-import { getProjects, deleteProject } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { getProjects, deleteProject, createProject, getApiBaseUrl } from "@/lib/api";
 import { Project } from "@/lib/types";
-import { ProjectCard } from "@/components/dashboard/ProjectCard";
-import { EmptyState } from "@/components/dashboard/EmptyState";
-import { ProjectCardSkeleton } from "@/components/dashboard/ProjectCardSkeleton";
+
+function getYouTubeThumbnail(url: string): string | null {
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?/]+)/);
+    return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null;
+}
+
+function getYouTubeId(url: string): string | null {
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?/]+)/);
+    return match ? match[1] : null;
+}
+
+function formatTimeAgo(dateStr: string): string {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const hours = Math.floor(diff / 3600000);
+    if (hours < 1) return "just now";
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+}
+
+function StatusBadge({ status }: { status: Project["status"] }) {
+    const cfg: Record<string, { label: string; cls: string; pulse?: boolean }> = {
+        done: { label: "Published", cls: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" },
+        error: { label: "Error", cls: "bg-red-500/20 text-red-400 border border-red-500/30" },
+        pending: { label: "Pending", cls: "bg-slate-500/20 text-slate-400 border border-slate-500/30" },
+        downloading: { label: "Downloading", cls: "bg-blue-500/20 text-blue-400 border border-blue-500/30", pulse: true },
+        transcribing: { label: "Transcribing", cls: "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30", pulse: true },
+        analyzing: { label: "Analyzing", cls: "bg-violet-500/20 text-violet-400 border border-violet-500/30", pulse: true },
+        processing: { label: "Rendering", cls: "bg-amber-500/20 text-amber-400 border border-amber-500/30", pulse: true },
+    };
+    const c = cfg[status] || cfg.pending;
+    return (
+        <span className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md ${c.cls}`}>
+            {c.pulse && <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />}
+            {c.label}
+        </span>
+    );
+}
 
 export default function Dashboard() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+    const router = useRouter();
+    const [projects, setProjects] = useState<Project[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [filter, setFilter] = useState<"all" | "processing" | "done" | "error">("all");
+    const [urlInput, setUrlInput] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const urlRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    async function loadProjects() {
-      try {
-        const data = await getProjects();
-        setProjects(data);
-      } catch (err) {
-        console.error("Failed to load projects", err);
-        setError(err instanceof Error ? err.message : "Failed to load projects");
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadProjects();
-  }, []);
+    useEffect(() => {
+        getProjects()
+            .then(setProjects)
+            .catch(console.error)
+            .finally(() => setLoading(false));
+    }, []);
 
-  const loadProjectsRetry = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getProjects();
-      setProjects(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load projects");
-    } finally {
-      setLoading(false);
-    }
-  };
+    const handleDelete = async (e: React.MouseEvent, id: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+        await deleteProject(id).catch(console.error);
+        setProjects(prev => prev.filter(p => p.id !== id));
+    };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteProject(id);
-      setProjects((prev) => prev.filter((p) => p.id !== id));
-    } catch (err) {
-      console.error("Failed to delete project", err);
-    }
-  };
+    const handleQuickCreate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!urlInput.trim() || submitting) return;
+        setSubmitting(true);
+        try {
+            const { project_id } = await createProject(urlInput.trim());
+            router.push(`/project/${project_id}`);
+        } catch {
+            setSubmitting(false);
+        }
+    };
 
-  return (
-    <div className="container mx-auto px-4 py-8 md:px-6 md:py-12 max-w-6xl">
-      {/* Hero Section */}
-      <div className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)] sm:text-4xl flex items-center gap-3">
-            <Scissors className="h-8 w-8 text-[var(--accent)]" />
-            Your Projects
-          </h1>
-          <p className="mt-2 text-lg text-gray-400">
-            Turn any YouTube video into clips automatically.
-          </p>
+    const handlePaste = async () => {
+        try {
+            const text = await navigator.clipboard.readText();
+            setUrlInput(text);
+            urlRef.current?.focus();
+        } catch { /* ignore */ }
+    };
+
+    const filtered = projects.filter(p => {
+        if (filter === "all") return true;
+        if (filter === "done") return p.status === "done";
+        if (filter === "error") return p.status === "error";
+        if (filter === "processing") return !["done", "error"].includes(p.status);
+        return true;
+    });
+
+    return (
+        <div className="mx-auto w-full max-w-7xl px-6 lg:px-20 py-10">
+
+            {/* Hero Banner */}
+            <section className="relative mb-16 overflow-hidden rounded-3xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-accent-purple/20 to-transparent" />
+                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80')] bg-cover bg-center opacity-20 mix-blend-overlay" />
+                <div className="relative flex min-h-[360px] flex-col items-start justify-center p-8 lg:p-16">
+                    <div className="max-w-2xl">
+                        <span className="mb-4 inline-block rounded-full bg-primary/20 border border-primary/30 px-4 py-1 text-xs font-bold uppercase tracking-widest text-primary">
+                            AI Powered Editing
+                        </span>
+                        <h1 className="mb-5 text-4xl font-bold leading-[1.1] tracking-tight text-white lg:text-5xl">
+                            Turn any YouTube video into{" "}
+                            <span className="text-gradient">viral clips</span>
+                        </h1>
+                        <p className="mb-8 text-base text-slate-300 max-w-lg">
+                            Automatically extract highlights, add captions, and resize for TikTok, Reels, and Shorts.
+                        </p>
+                        <div className="flex flex-wrap items-center gap-3 w-full">
+                            <Link
+                                href="/create"
+                                className="flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-bold text-white glow-primary hover:bg-primary/90 transition-all flex-shrink-0"
+                            >
+                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+                                Create New Project
+                            </Link>
+                            <form onSubmit={handleQuickCreate} className="flex flex-1 min-w-[280px] items-center gap-2 rounded-xl glass px-4 py-2.5 border border-white/10 focus-within:border-primary/50 transition-all h-[50px]">
+                                <svg className="h-4 w-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                <input
+                                    ref={urlRef}
+                                    value={urlInput}
+                                    onChange={e => setUrlInput(e.target.value)}
+                                    className="flex-1 bg-transparent border-none text-sm text-white placeholder-slate-500 focus:ring-0 focus:outline-none p-0"
+                                    placeholder="Paste YouTube link..."
+                                    type="text"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handlePaste}
+                                    className="rounded-lg bg-primary/20 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/30 transition-colors uppercase tracking-wider"
+                                >
+                                    Paste
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Filter Bar */}
+            <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+                <div className="flex gap-1 p-1 glass rounded-xl">
+                    {(["all", "processing", "done", "error"] as const).map(f => (
+                        <button
+                            key={f}
+                            onClick={() => setFilter(f)}
+                            className={`rounded-lg px-5 py-2 text-sm font-semibold transition-colors capitalize ${
+                                filter === f
+                                    ? "bg-primary/20 text-primary"
+                                    : "text-slate-400 hover:text-white"
+                            }`}
+                        >
+                            {f === "all" ? "All Projects" : f === "processing" ? "In Progress" : f.charAt(0).toUpperCase() + f.slice(1)}
+                        </button>
+                    ))}
+                </div>
+                <div className="flex items-center gap-3">
+                    <span className="text-sm text-slate-400">Sort by:</span>
+                    <select className="rounded-xl border border-white/10 bg-white/5 py-2 pl-4 pr-10 text-sm text-white focus:border-primary focus:outline-none">
+                        <option>Recently Edited</option>
+                        <option>Date Created</option>
+                        <option>Name</option>
+                    </select>
+                </div>
+            </div>
+
+            {/* Project Grid */}
+            {loading ? (
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {[...Array(4)].map((_, i) => (
+                        <div key={i} className="flex flex-col gap-4">
+                            <div className="aspect-video rounded-2xl glass animate-pulse" />
+                            <div className="px-1 space-y-2">
+                                <div className="h-4 w-3/4 rounded-full bg-white/5 animate-pulse" />
+                                <div className="h-3 w-1/2 rounded-full bg-white/5 animate-pulse" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : filtered.length === 0 ? (
+                <div className="col-span-full text-center py-24 glass rounded-3xl">
+                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+                        <svg className="h-8 w-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
+                    </div>
+                    <p className="text-slate-300 font-semibold">No projects yet</p>
+                    <p className="text-slate-500 text-sm mt-1">Paste a YouTube URL above to get started</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {filtered.map(project => {
+                        const thumb = getYouTubeThumbnail(project.youtube_url);
+                        const ytId = getYouTubeId(project.youtube_url);
+                        const isActive = !["done", "error"].includes(project.status);
+                        return (
+                            <Link key={project.id} href={`/project/${project.id}`} className="group flex flex-col gap-3">
+                                <div className="relative aspect-video overflow-hidden rounded-2xl glass border border-white/5">
+                                    {thumb ? (
+                                        <img
+                                            src={thumb}
+                                            alt={project.title || "Project"}
+                                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                        />
+                                    ) : (
+                                        <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent-purple/20 flex items-center justify-center">
+                                            <svg className="h-10 w-10 text-primary/40" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                        </div>
+                                    )}
+                                    <div className="absolute top-3 right-3">
+                                        <StatusBadge status={project.status} />
+                                    </div>
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm">
+                                        <button className="rounded-full bg-white p-3 text-black shadow-xl">
+                                            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="flex items-start justify-between px-1">
+                                    <div className="flex-1 min-w-0 pr-2">
+                                        <h3 className="font-bold text-white group-hover:text-primary transition-colors truncate text-sm">
+                                            {project.title || (ytId ? `YouTube: ${ytId}` : "Untitled")}
+                                        </h3>
+                                        <p className="mt-0.5 text-xs text-slate-500">
+                                            {formatTimeAgo(project.created_at)}
+                                            {project.clip_count ? ` • ${project.clip_count} clips` : ""}
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={e => handleDelete(e, project.id)}
+                                        className="text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+                                    >
+                                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
+                                </div>
+                            </Link>
+                        );
+                    })}
+
+                    {/* Create new card */}
+                    <Link href="/create" className="group flex flex-col gap-3">
+                        <div className="relative aspect-video overflow-hidden rounded-2xl border-2 border-dashed border-white/10 hover:border-primary/40 transition-colors flex items-center justify-center">
+                            <div className="flex flex-col items-center gap-2 text-slate-600 group-hover:text-primary transition-colors">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 group-hover:bg-primary/10 transition-colors">
+                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+                                </div>
+                                <span className="text-xs font-semibold">Create new project</span>
+                            </div>
+                        </div>
+                    </Link>
+                </div>
+            )}
+
+            {/* Load More */}
+            {filtered.length > 0 && (
+                <div className="mt-12 flex justify-center">
+                    <button className="rounded-xl glass glass-hover px-8 py-3 text-sm font-semibold text-slate-300 transition-all">
+                        Load More Projects
+                    </button>
+                </div>
+            )}
+
+            {/* Footer */}
+            <footer className="mt-20 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-white/5 pt-8">
+                <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+                        <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    </div>
+                    <span className="text-sm font-bold text-white">OpenClip</span>
+                </div>
+                <div className="flex gap-6 text-xs text-slate-500">
+                    <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+                    <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+                    <a href="#" className="hover:text-white transition-colors">Help Center</a>
+                    <a href="#" className="hover:text-white transition-colors">Contact</a>
+                </div>
+                <p className="text-xs text-slate-600">© 2025 OpenClip AI. All rights reserved.</p>
+            </footer>
         </div>
-        <Link
-          href="/create"
-          className="inline-flex h-11 items-center justify-center rounded-sm bg-[var(--accent)] px-6 py-2 text-sm font-semibold text-black shadow transition-all hover:bg-[var(--accent)]/90 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Plus className="mr-2 h-5 w-5" />
-          Create New Project
-        </Link>
-      </div>
-
-      {/* Main Content */}
-      {loading ? (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <ProjectCardSkeleton count={3} />
-        </div>
-      ) : error ? (
-        <div className="text-center bg-[var(--surface)] border border-[var(--error)]/50 rounded-lg p-12 mt-8">
-          <h3 className="text-lg font-semibold text-[var(--error)] mb-2">Failed to load projects</h3>
-          <p className="text-gray-400 mb-6">{error}</p>
-          <button
-            onClick={loadProjectsRetry}
-            className="bg-[var(--surface)] border border-[var(--border)] hover:bg-gray-800 px-4 py-2 rounded-sm text-sm"
-          >
-            Retry
-          </button>
-        </div>
-      ) : projects.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
-            <ProjectCard key={project.id} project={project} onDelete={handleDelete} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
+    );
 }

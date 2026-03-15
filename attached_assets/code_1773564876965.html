@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Settings - AI Orchestration</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2e1ded",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#000000",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-hover:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .active-glow {
+            box-shadow: 0 0 20px rgba(46, 29, 237, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-72 flex flex-col border-r border-slate-800/50 bg-black/40 backdrop-blur-xl">
+<div class="p-8">
+<div class="flex items-center gap-3 text-primary">
+<span class="material-symbols-outlined text-3xl font-bold">bolt</span>
+<span class="text-xl font-bold tracking-tight text-slate-100">Quantum</span>
+</div>
+</div>
+<nav class="flex-1 px-4 space-y-2">
+<div class="flex items-center gap-4 px-4 py-3 rounded-xl glass-hover cursor-pointer transition-all">
+<span class="material-symbols-outlined text-slate-400">dashboard</span>
+<span class="font-medium text-slate-300">Overview</span>
+</div>
+<div class="flex items-center gap-4 px-4 py-3 rounded-xl glass-hover cursor-pointer transition-all">
+<span class="material-symbols-outlined text-slate-400">analytics</span>
+<span class="font-medium text-slate-300">Analytics</span>
+</div>
+<div class="flex items-center gap-4 px-4 py-3 rounded-xl bg-primary/10 text-primary border border-primary/20 transition-all">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-bold">Settings</span>
+</div>
+<div class="flex items-center gap-4 px-4 py-3 rounded-xl glass-hover cursor-pointer transition-all">
+<span class="material-symbols-outlined text-slate-400">person</span>
+<span class="font-medium text-slate-300">Account</span>
+</div>
+</nav>
+<div class="p-6">
+<div class="glass rounded-2xl p-4 flex items-center gap-3">
+<div class="size-10 rounded-full bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center text-white font-bold border border-white/10" data-alt="User avatar with purple gradient">
+                    AS
+                </div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold truncate">Alex Smith</p>
+<p class="text-xs text-slate-500 truncate">Pro Member</p>
+</div>
+<span class="material-symbols-outlined text-slate-500 text-sm">more_vert</span>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col overflow-y-auto bg-background-dark">
+<!-- Header -->
+<header class="sticky top-0 z-10 flex items-center justify-between px-10 py-6 border-b border-slate-800/50 bg-black/80 backdrop-blur-md"><div class="flex items-center gap-4">
+<button class="size-10 flex items-center justify-center rounded-xl glass glass-hover transition-all text-slate-400 hover:text-white">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-2xl font-bold text-slate-100">Settings</h1>
+</div></header>
+<div class="max-w-2xl mx-auto w-full p-10 space-y-12">
+<!-- Preference Section -->
+<section class="space-y-6">
+<h2 class="text-lg font-bold text-slate-100">LLM Provider</h2>
+<div class="space-y-6">
+<div class="p-1 bg-slate-900/50 rounded-xl flex gap-1">
+<button class="flex-1 py-2 text-sm font-bold rounded-lg bg-primary text-white">OpenAI</button>
+<button class="flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-slate-100">Anthropic</button>
+<button class="flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-slate-100">Gemini</button>
+<button class="flex-1 py-2 text-sm font-bold rounded-lg text-slate-400 hover:text-slate-100">Ollama</button>
+</div>
+<div class="space-y-4">
+<div>
+<label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">API Key</label>
+<input class="w-full bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:border-primary focus:ring-0 transition-all" placeholder="sk-••••••••••••••••••••••••" type="password"/>
+<a class="inline-block mt-2 text-xs font-bold text-primary hover:underline" href="#">Get API key →</a>
+</div>
+<div>
+<label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Model Name</label>
+<input class="w-full bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:border-primary focus:ring-0 transition-all" placeholder="gpt-4o-mini" type="text"/>
+</div>
+</div>
+</div>
+</section>
+<!-- System Options -->
+<section class="space-y-4">
+<h2 class="text-lg font-bold text-slate-100">Whisper Model</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<div class="p-4 rounded-xl border border-slate-800 bg-slate-900/30 cursor-pointer hover:border-slate-700 transition-all">
+<p class="font-bold text-slate-100">Base (Fast)</p>
+<p class="text-xs text-slate-500 mt-1">Lowest latency</p>
+</div>
+<div class="p-4 rounded-xl border border-slate-800 bg-slate-900/30 cursor-pointer hover:border-slate-700 transition-all">
+<p class="font-bold text-slate-100">Small (Balanced)</p>
+<p class="text-xs text-slate-500 mt-1">Optimal performance</p>
+</div>
+<div class="p-4 rounded-xl border-2 border-[#3ecf8e] bg-[#3ecf8e]/5 cursor-pointer transition-all">
+<p class="font-bold text-slate-100">Medium (Accurate)</p>
+<p class="text-xs text-slate-500 mt-1">Highest precision</p>
+</div>
+</div>
+</section>
+<!-- Danger Zone -->
+<section class="space-y-4">
+<h2 class="text-lg font-bold text-slate-100">Caption Style</h2>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+<div class="space-y-2">
+<div class="aspect-video rounded-xl bg-slate-900/50 border border-slate-800 flex items-center justify-center relative overflow-hidden">
+<span class="text-slate-700 font-bold line-through">THE QUICK</span>
+</div>
+<p class="text-center text-xs font-bold text-slate-500">No Captions</p>
+</div>
+<div class="space-y-2">
+<div class="aspect-video rounded-xl bg-slate-900/50 border-2 border-[#3ecf8e] flex items-center justify-center relative">
+<span class="text-[#3ecf8e] font-black italic">THE QUICK</span>
+</div>
+<p class="text-center text-xs font-bold text-[#3ecf8e]">Dynamic</p>
+</div>
+<div class="space-y-2">
+<div class="aspect-video rounded-xl bg-slate-900/50 border border-slate-800 flex items-center justify-center relative">
+<span class="text-white font-bold" style="-webkit-text-stroke: 1px black;">THE QUICK</span>
+</div>
+<p class="text-center text-xs font-bold text-slate-500">Outline</p>
+</div>
+<div class="space-y-2">
+<div class="aspect-video rounded-xl bg-slate-900/50 border border-slate-800 flex items-center justify-center relative">
+<span class="text-white font-bold bg-black/80 px-2 py-1">THE QUICK</span>
+</div>
+<p class="text-center text-xs font-bold text-slate-500">Classic</p>
+</div>
+</div>
+</section>
+<div class="pt-10">
+<button class="w-full bg-primary hover:bg-primary/90 text-white py-4 rounded-xl font-bold transition-all active-glow text-lg">
+        Save Settings
+    </button>
+</div></div>
+</main>
+</div>
+</body></html>
