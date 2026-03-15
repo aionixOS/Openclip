@@ -283,7 +283,6 @@ Check in this order:
 5. Try a shorter video first (under 10 minutes)
    to verify your setup works.
 ```
-
 ---
 
 **Q7. How do I suggest a feature or report a bug?**
