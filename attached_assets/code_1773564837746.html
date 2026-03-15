@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2e1ded",
+                        "accent-purple": "#8b5cf6",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#000000",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-hover:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        body {
+            background-color: #000000;
+        }
+    </style>
+</head>
+<body class="font-display text-slate-100 antialiased selection:bg-primary/30">
+<div class="relative flex min-h-screen w-full flex-col bg-background-dark overflow-x-hidden">
+<header class="sticky top-0 z-50 w-full border-b border-white/10 glass px-6 lg:px-20 py-4">
+<div class="mx-auto flex max-w-7xl items-center justify-between">
+<div class="flex items-center gap-12">
+<div class="flex items-center gap-3">
+<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+<span class="material-symbols-outlined text-white text-2xl">auto_videocam</span>
+</div>
+<h2 class="text-xl font-bold tracking-tight text-white">OpenClip</h2>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-sm font-medium text-slate-100 hover:text-primary transition-colors" href="#">Projects</a>
+<a class="text-sm font-medium text-slate-400 hover:text-primary transition-colors" href="#">Templates</a>
+<a class="text-sm font-medium text-slate-400 hover:text-primary transition-colors" href="#">Assets</a>
+</nav>
+</div>
+<div class="flex flex-1 items-center justify-end gap-6">
+<div class="relative hidden lg:block w-full max-w-xs">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
+<input class="w-full rounded-full bg-white/5 border border-white/10 py-2 pl-10 pr-4 text-sm text-white placeholder-slate-500 focus:border-primary focus:ring-0 transition-all" placeholder="Search projects..." type="text"/>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex h-10 w-10 items-center justify-center rounded-full glass glass-hover text-slate-300">
+<span class="material-symbols-outlined text-xl">notifications</span>
+</button>
+<button class="flex h-10 w-10 items-center justify-center rounded-full glass glass-hover text-slate-300">
+<span class="material-symbols-outlined text-xl">settings</span>
+</button>
+<div class="h-10 w-10 rounded-full border-2 border-primary/50 p-0.5">
+<img class="h-full w-full rounded-full object-cover" data-alt="User profile avatar smiling" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBYwlln8YUxU9v_99r4j96nmfRg7SyJDDjC_bHyjFir-iUvSOz2cNZIfdul_wPNr2neYWyrBzY1XVH7T9N85pExr4dXl6kXo0u2xCMqqYS8io1gM3IbxMRPB-mC1Xb7wCtB9ehCmvUMp0hERvTzOgu5021VH0FohYvT02cUVT9ui0qVNGXtjyQBi70TvMfkEKURQTjA4Ao14dU_KOWME63GNprWzReuJorSQyHQHimEqkNMyTMDWVJ5aiqtu27sd1l8SVitLD4j1-Me"/>
+</div>
+</div>
+</div>
+</div>
+</header>
+<main class="mx-auto w-full max-w-7xl flex-1 px-6 lg:px-20 py-10">
+<section class="relative mb-16 overflow-hidden rounded-3xl">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/40 via-accent-purple/20 to-transparent"></div>
+<div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&amp;fit=crop&amp;w=1200&amp;q=80')] bg-cover bg-center mix-blend-overlay opacity-40" data-alt="Abstract purple and blue fluid patterns"></div>
+<div class="relative flex min-h-[400px] flex-col items-start justify-center p-8 lg:p-16">
+<div class="max-w-2xl">
+<span class="mb-4 inline-block rounded-full bg-primary/20 border border-primary/30 px-4 py-1 text-xs font-bold uppercase tracking-widest text-primary">AI Powered Editing</span>
+<h1 class="mb-6 text-5xl font-bold leading-[1.1] tracking-tight text-white lg:text-6xl">
+                            Turn any YouTube video into <span class="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent-purple">viral clips</span>
+</h1>
+<p class="mb-10 text-lg text-slate-300">
+                            High-performance editing with glassmorphic precision. Automatically extract highlights, add captions, and resize for TikTok, Reels, and Shorts.
+                        </p>
+<div class="flex flex-wrap gap-4"><div class="flex flex-wrap items-center gap-4 w-full">
+<button class="flex items-center gap-2 rounded-xl bg-primary px-8 py-4 text-sm font-bold text-white shadow-lg shadow-primary/25 hover:bg-primary/90 transition-all">
+<span class="material-symbols-outlined">add_circle</span>
+        Create New Project
+    </button>
+<div class="flex flex-1 min-w-[300px] items-center gap-2 rounded-xl glass px-4 py-2 border border-white/10 focus-within:border-primary/50 transition-all h-[52px]">
+<span class="material-symbols-outlined text-slate-400">link</span>
+<input class="flex-1 bg-transparent border-none text-sm text-white placeholder-slate-500 focus:ring-0 p-0" placeholder="Paste YouTube link..." type="text"/>
+<button class="rounded-lg bg-primary/20 px-4 py-2 text-xs font-bold text-primary hover:bg-primary/30 transition-colors uppercase tracking-wider">
+            Paste
+        </button>
+</div>
+</div>
+<button class="flex w-full items-center justify-center gap-3 rounded-xl glass px-8 py-4 text-sm font-bold text-white glass-hover transition-all mt-2">
+<svg class="h-5 w-5 fill-current" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.43.372.823 1.102.823 2.222 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"></path>
+</svg>
+    Open Source
+</button></div>
+</div>
+</div>
+</section>
+<div class="mb-10 flex flex-wrap items-center justify-between gap-6">
+<div class="flex gap-2 p-1 glass rounded-xl">
+<button class="rounded-lg bg-primary/20 px-6 py-2 text-sm font-bold text-primary">All Projects</button>
+<button class="rounded-lg px-6 py-2 text-sm font-medium text-slate-400 hover:text-white transition-colors">Drafts</button>
+<button class="rounded-lg px-6 py-2 text-sm font-medium text-slate-400 hover:text-white transition-colors">Completed</button>
+<button class="rounded-lg px-6 py-2 text-sm font-medium text-slate-400 hover:text-white transition-colors">Archived</button>
+</div>
+<div class="flex items-center gap-4">
+<p class="text-sm text-slate-400">Sort by:</p>
+<select class="rounded-lg border-white/10 bg-white/5 py-2 pl-4 pr-10 text-sm text-white focus:border-primary focus:ring-0">
+<option>Recently Edited</option>
+<option>Date Created</option>
+<option>Name</option>
+</select>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+<div class="group flex flex-col gap-4">
+<div class="relative aspect-video overflow-hidden rounded-2xl glass">
+<img class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Microphone in a dark podcast studio" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdM_nKyzU6hOsXItkl2HGhNg_g8aFbUGnqCv3HTpoPyH_mmWZWSzBTF04Ua3cQUPT2_Q-ceGcux_ON88xt98sfs8SaVZwfD0uyToYoSEKUjptQoTMeVr4fhYHxfWJOzdrvYNUtERaFUWkaGZWk-KxVqN0weiXBbRbhw4tBrY5WoLWDqiopupmsqCvcetRwnHlBl-qKqrMyxJprp1_3RHjKbxuzDM-Q1dYhhFETC8NEpOnmsolUt_pTemVv90rQ0bvQBTOPkNA_w6Vp"/>
+<div class="absolute top-3 right-3">
+<span class="flex items-center gap-1 rounded-full bg-amber-500/20 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-500 border border-amber-500/30 backdrop-blur-md">
+<span class="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                Rendering
+                            </span>
+</div>
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm">
+<button class="rounded-full bg-white p-3 text-black shadow-xl">
+<span class="material-symbols-outlined leading-none">play_arrow</span>
+</button>
+</div>
+</div>
+<div class="flex items-start justify-between px-1">
+<div>
+<h3 class="font-bold text-white group-hover:text-primary transition-colors">Podcast Highlight #1</h3>
+<p class="mt-1 text-xs text-slate-500">Edited 2h ago • 04:20</p>
+</div>
+<button class="text-slate-400 hover:text-white">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<div class="group flex flex-col gap-4">
+<div class="relative aspect-video overflow-hidden rounded-2xl glass">
+<img class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Gaming setup with neon lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBWFCo6sSqkMfknOdgU-C4eokLsSYOpZhjx83oV8dWPms-PkNTj1yVApiVQxSZGOpMlj4Q__9BZ0C3tsPhlWgClDB_2dmCWJaEDPBHmvi5PtZ6xXLwEIJ278277W2bVONZt3zo_QHO5S8UXMr4EiAFxGBeFJlWjVczHLqNOsxzdG-Z__inKAMp24iWMEljZwOUywPVY2RBJDmUXXP_hquX7EdIo6T5PabYhOsbppgK_aoUO5tAPa_iLqWrAuYtfGXFfzUEdJzYuyiL"/>
+<div class="absolute top-3 right-3">
+<span class="rounded-full bg-slate-500/20 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 border border-slate-500/30 backdrop-blur-md">Draft</span>
+</div>
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm">
+<button class="rounded-full bg-white p-3 text-black shadow-xl">
+<span class="material-symbols-outlined leading-none">edit</span>
+</button>
+</div>
+</div>
+<div class="flex items-start justify-between px-1">
+<div>
+<h3 class="font-bold text-white group-hover:text-primary transition-colors">Gaming Montage</h3>
+<p class="mt-1 text-xs text-slate-500">Edited 5h ago • 12:15</p>
+</div>
+<button class="text-slate-400 hover:text-white">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<div class="group flex flex-col gap-4">
+<div class="relative aspect-video overflow-hidden rounded-2xl glass">
+<img class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Laptop with code on screen" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBpIs5uSUDfMXMigR7CD-XaZz_iPskH4yF_RKnF0YLQL5veGhGyl6Nf6vIy8wlqTEcIZ8P63bbLwgxyxeqLGHem0uDaRmc05WPMV4Vpq6HqKhvqGXzl7jFs-F5n7Boj-kz3qMl7iYM8DekioJ-SluwYityvcAsHa_vZrN79hVqcAprnOtvfdFEjoOc3lplOTU-cHF4Ahag-dB15hWOJ5VmQiGTcZ3K5UdSc_1eQXFM5h0eSUO6FuFmyPvAh3jUptaqEjlH2HyqxU-UX"/>
+<div class="absolute top-3 right-3">
+<span class="rounded-full bg-emerald-500/20 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-500 border border-emerald-500/30 backdrop-blur-md">Published</span>
+</div>
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm">
+<button class="rounded-full bg-white p-3 text-black shadow-xl">
+<span class="material-symbols-outlined leading-none">visibility</span>
+</button>
+</div>
+</div>
+<div class="flex items-start justify-between px-1">
+<div>
+<h3 class="font-bold text-white group-hover:text-primary transition-colors">Tech Review: AI Tools</h3>
+<p class="mt-1 text-xs text-slate-500">Edited 1d ago • 08:45</p>
+</div>
+<button class="text-slate-400 hover:text-white">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<div class="group flex flex-col gap-4">
+<div class="relative aspect-video overflow-hidden rounded-2xl glass">
+<img class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" data-alt="Mountains and blue lake landscape" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCYorOVjnlHNLKRFLRkN9HfqFQxhHI-7iKUangy1CG6GgooR_UXHS_JeZPsaeMc0xTZ7NeTWMDkHC_Rv50T3e00lqxS3Z-TbzB2eT2jVxkHJUPtqmHXHLnvyPy7xr4owOBBhms3sodbJkG0GltEH7_D0Pkv_v2lvUTsGEtf5lXKAVlRizQI5I3du1yE_IbxSTurCOECLD-bzElrEasMx40unN6EsklsqmcVayEoxXFUqh4b5YT8Kq2_N4kqbNHLresuLiqNbSxIFo9z"/>
+<div class="absolute top-3 right-3">
+<span class="rounded-full bg-emerald-500/20 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-500 border border-emerald-500/30 backdrop-blur-md">Published</span>
+</div>
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm">
+<button class="rounded-full bg-white p-3 text-black shadow-xl">
+<span class="material-symbols-outlined leading-none">visibility</span>
+</button>
+</div>
+</div>
+<div class="flex items-start justify-between px-1">
+<div>
+<h3 class="font-bold text-white group-hover:text-primary transition-colors">Travel Vlog: Swiss Alps</h3>
+<p class="mt-1 text-xs text-slate-500">Edited 2d ago • 15:30</p>
+</div>
+<button class="text-slate-400 hover:text-white">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</div>
+<div class="group flex flex-col gap-4">
+<div class="relative aspect-video overflow-hidden rounded-2xl glass flex flex-col items-center justify-center border-dashed border-white/20 hover:border-primary/50 cursor-pointer">
+<span class="material-symbols-outlined text-4xl text-slate-600 group-hover:text-primary mb-2">add_circle</span>
+<p class="text-sm font-medium text-slate-500 group-hover:text-slate-300">Create new project</p>
+</div>
+</div>
+</div>
+<div class="mt-16 flex justify-center">
+<button class="flex items-center gap-2 rounded-xl glass px-12 py-3 text-sm font-bold text-slate-300 glass-hover transition-all">
+                    Load More Projects
+                </button>
+</div>
+</main>
+<footer class="mt-20 border-t border-white/10 bg-black/40 py-12 px-6 lg:px-20 backdrop-blur-md">
+<div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-8 md:flex-row">
+<div class="flex items-center gap-3">
+<div class="flex h-8 w-8 items-center justify-center rounded bg-primary">
+<span class="material-symbols-outlined text-white text-lg">auto_videocam</span>
+</div>
+<h2 class="text-lg font-bold tracking-tight text-white">OpenClip</h2>
+</div>
+<div class="flex gap-8 text-sm text-slate-500">
+<a class="hover:text-white" href="#">Privacy Policy</a>
+<a class="hover:text-white" href="#">Terms of Service</a>
+<a class="hover:text-white" href="#">Help Center</a>
+<a class="hover:text-white" href="#">Contact</a>
+</div>
+<div class="text-sm text-slate-600">
+                    © 2024 OpenClip AI. All rights reserved.
+                </div>
+</div>
+</footer>
+</div>
+</body></html>
