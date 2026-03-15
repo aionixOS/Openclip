@@ -1,14 +1,14 @@
 # OpenClip by AIONIX
 
-![OpenClip Dashboard Preview](frontend\public\Screenshot.png)
+![OpenClip Dashboard Preview](frontend/public/screenshot.png)
 
 > Open-source, local-first video clipping engine.
 > Paste a YouTube URL → download → auto-clip → export.
 
-[![GitHub Stars](https://img.shields.io/github/stars/aionix/openclip?style=social)](https://github.com/aionix/openclip)
+[![GitHub Stars](https://img.shields.io/github/stars/aionixos/openclip?style=social)](https://github.com/aionixos/openclip)
 [![License](https://img.shields.io/badge/license-TBD-blue)](LICENSE)
-[![Built with AI](https://img.shields.io/badge/built%20with-AI-blueviolet)](https://github.com/aionix/openclip)
-[![Age](https://img.shields.io/badge/founder%20age-17-ff6b6b)](https://github.com/aionix)
+[![Built with AI](https://img.shields.io/badge/built%20with-AI-blueviolet)](https://github.com/aionixos/openclip)
+[![Age](https://img.shields.io/badge/founder%20age-17-ff6b6b)](https://github.com/aionixos)
 
 ---
 
