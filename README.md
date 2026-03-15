@@ -1,6 +1,6 @@
 # OpenClip by AIONIX
 
-![OpenClip Dashboard Preview](frontend\public\Screenshot 2026-03-15 205743.png)
+![OpenClip Dashboard Preview](frontend\public\Screenshot.png)
 
 > Open-source, local-first video clipping engine.
 > Paste a YouTube URL → download → auto-clip → export.
