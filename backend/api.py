@@ -1,6 +1,8 @@
 """
 api.py — FastAPI application for OpenClip.
 
+😂 Seriously, are you going to read this full !
+
 This is the main entry-point for the backend.  It wires together the
 database, downloader, clipper, transcriber, LLM, and settings modules
 behind a REST + WebSocket API that the Next.js frontend consumes.
