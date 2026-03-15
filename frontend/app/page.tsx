@@ -284,6 +284,33 @@ export default function Dashboard() {
                 </div>
             )}
 
+            {/* Footer */}
+            <footer className="mt-16 relative overflow-hidden rounded-3xl glass border border-white/5">
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent-purple/5 to-transparent pointer-events-none" />
+                <div className="relative flex items-center justify-between px-10 py-6">
+                    {/* Logo + name */}
+                    <div className="flex items-center gap-4">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary glow-primary flex-shrink-0">
+                            <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                        </div>
+                        <div>
+                            <p className="text-base font-bold text-white tracking-tight">OpenClip</p>
+                            <p className="text-xs text-slate-500 mt-0.5">AI-Powered Video Clipping</p>
+                        </div>
+                    </div>
+
+                    {/* Character */}
+                    <div className="relative h-28 w-24 flex-shrink-0">
+                        <img
+                            src="/footer-character.png"
+                            alt="OpenClip character"
+                            className="absolute bottom-0 right-0 h-[160%] w-auto mix-blend-screen select-none"
+                            style={{ objectFit: "contain", objectPosition: "bottom right" }}
+                        />
+                    </div>
+                </div>
+            </footer>
+
         </div>
     );
 }
