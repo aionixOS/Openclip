@@ -32,7 +32,12 @@ export function useProjectProgress(projectId: string | null): ProgressState {
         setLogs([]);
 
         let isMounted = true;
-        const WS_URL = `ws://localhost:8000/ws/progress/${projectId}`;
+        const host = window.location.hostname;
+        const isReplit = host !== 'localhost' && host !== '127.0.0.1';
+        const wsBase = isReplit
+            ? `wss://${host.replace(/^(\d+)-/, '8000-')}`
+            : 'ws://localhost:8000';
+        const WS_URL = `${wsBase}/ws/progress/${projectId}`;
 
         const connect = () => {
             if (!isMounted) return;

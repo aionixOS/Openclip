@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ClipFlow AI - View Project</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2e1ded",
+                        "accent": "#7c3aed",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#000000",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-hover:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #2e1ded;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background-dark font-display text-slate-100 overflow-hidden h-screen flex flex-col">
+<!-- Top Navigation Bar -->
+<header class="flex items-center justify-between px-8 py-4 border-b border-white/10 glass z-50">
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-3">
+<div class="size-8 bg-primary rounded-lg flex items-center justify-center shadow-[0_0_20px_rgba(46,29,237,0.5)]">
+<span class="material-symbols-outlined text-white">movie_filter</span>
+</div>
+<h2 class="text-xl font-bold tracking-tight">ClipFlow <span class="text-primary">AI</span></h2>
+</div>
+<nav class="hidden md:flex items-center gap-6 ml-10">
+<a class="text-sm font-medium text-slate-400 hover:text-white transition-colors" href="#">Dashboard</a>
+<a class="text-sm font-medium text-white" href="#">Projects</a>
+<a class="text-sm font-medium text-slate-400 hover:text-white transition-colors" href="#">Assets</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full glass border-white/5">
+<div class="size-2 bg-green-500 rounded-full animate-pulse"></div>
+<span class="text-xs font-medium text-slate-300">GPU Active</span>
+</div>
+<button class="p-2 rounded-xl glass-hover transition-all text-slate-300">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="h-8 w-[1px] bg-white/10 mx-2"></div>
+<div class="flex items-center gap-3 pl-2">
+<div class="text-right hidden sm:block">
+<p class="text-xs font-bold text-white">Alex Rivera</p>
+<p class="text-[10px] text-primary">Pro Plan</p>
+</div>
+<div class="size-10 rounded-full border-2 border-primary/30 p-0.5">
+<img class="rounded-full h-full w-full object-cover" data-alt="User profile avatar portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzoq49LdY4Mk1JqWsA0Cau7Ad_lF4a6pn506pHk10Ul7UpnaQG0dc18oGFegqlk2klrjsHmK33pgPG-tE77fHekKKu2F8Vy2fBnzWCSFd_qPBbn7IMHyHfXtnI7iYLMMZxlw7VZnyOB55OEYiVnurGeOLK85bK40_KTwR8SPs1nYedqD-PwlgmYSTXaRq0UuMNIVoAKtQwmpCu62Ih5LkcTrGBcsXeZ79BqKeSUF3rLuSCmXF3LCocHRz2_7KTNpGdE7RuDVW3-QUP"/>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-1 flex overflow-hidden">
+<!-- Left Section: Large Video Player -->
+<section class="flex-[2] p-8 flex flex-col gap-6 overflow-y-auto custom-scrollbar">
+<div class="flex items-center justify-between mb-2">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-primary text-sm">folder_open</span>
+<span class="text-xs font-medium text-slate-500 uppercase tracking-widest">Project / Interview_042</span>
+</div>
+<h1 class="text-3xl font-bold">Marketing Strategy Q3</h1>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 rounded-xl glass glass-hover text-sm font-semibold flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">settings</span> Edit Settings
+                    </button>
+<button class="px-6 py-2 rounded-xl bg-primary hover:bg-primary/80 text-white text-sm font-bold flex items-center gap-2 shadow-[0_0_30px_rgba(46,29,237,0.4)] transition-all">
+<span class="material-symbols-outlined text-lg">ios_share</span> Export Full
+                    </button>
+</div>
+</div>
+<!-- Video Player -->
+<div class="relative group aspect-video rounded-3xl overflow-hidden glass border-white/10 shadow-2xl">
+<div class="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/20 transition-all duration-500">
+<div class="size-24 rounded-full bg-primary/20 backdrop-blur-md border border-white/20 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-white text-5xl fill-1">play_arrow</span>
+</div>
+</div>
+<div class="absolute inset-0 bg-cover bg-center" data-alt="High quality cinematic landscape video preview frame" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDjVw1Kxvpp-FhXlL7x9BerkuRqvxteasd2eAyrF3JSADKYgfRR81qKh6OX1wae5PRuaMDzIfoOSzqMs-K0Fk1VnpRcuor8wRTk9wRQO-VPmtgCvr1fxUmtEJUZtcbbJt2IbTifNKVRZeTj7veH_er6xFsuIShzsa0guzA4vRexvJnbJym--pmSOnb4Qjyl6LMe0CsEjFToXSfKjijPuxkTLUqQmDC_6OYkj6myEqUy7SSLUIm_uT2aJOSm1_fRivxPsa6o5ZZBO4lK');"></div>
+<!-- Player Controls (Overlay) -->
+<div class="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
+<div class="w-full h-1.5 bg-white/20 rounded-full mb-4 relative overflow-hidden">
+<div class="absolute inset-y-0 left-0 w-[42%] bg-primary shadow-[0_0_10px_#2e1ded]"></div>
+<div class="absolute left-[42%] top-1/2 -translate-y-1/2 size-4 bg-white rounded-full shadow-lg"></div>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-6">
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors">play_arrow</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors">skip_next</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors text-xl">volume_up</span>
+<span class="text-sm font-medium">04:12 / 12:45</span>
+</div>
+<div class="flex items-center gap-6">
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors">closed_caption</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors">settings</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-primary transition-colors">fullscreen</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Video Metadata -->
+<div class="grid grid-cols-4 gap-4">
+<div class="glass p-4 rounded-2xl">
+<p class="text-xs text-slate-500 mb-1">Resolution</p>
+<p class="text-sm font-bold">4K UHD (3840x2160)</p>
+</div>
+<div class="glass p-4 rounded-2xl">
+<p class="text-xs text-slate-500 mb-1">Frame Rate</p>
+<p class="text-sm font-bold">23.976 fps</p>
+</div>
+<div class="glass p-4 rounded-2xl">
+<p class="text-xs text-slate-500 mb-1">Duration</p>
+<p class="text-sm font-bold">12m 45s</p>
+</div>
+<div class="glass p-4 rounded-2xl">
+<p class="text-xs text-slate-500 mb-1">Source Clips</p>
+<p class="text-sm font-bold">24 Assets</p>
+</div>
+</div>
+</section>
+<!-- Right Section: Generated Clips List -->
+<aside class="flex-1 border-l border-white/10 flex flex-col">
+<div class="p-6 border-b border-white/10 flex items-center justify-between glass">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">auto_awesome</span>
+<h3 class="font-bold">Generated Clips</h3>
+</div>
+<span class="text-xs font-bold px-2 py-1 rounded bg-primary/20 text-primary border border-primary/30">8 TOTAL</span>
+</div>
+<div class="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
+<!-- Clip Item 1 -->
+<div class="glass rounded-2xl p-4 flex gap-4 group cursor-pointer border-transparent hover:border-primary/50 transition-all">
+<div class="relative w-32 aspect-[9/16] rounded-xl overflow-hidden flex-shrink-0">
+<img class="h-full w-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="Vertical portrait orientation video thumbnail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqDnGRJKEbttKfvGlK6FUtXAhVPcve5_vXO__jHV_8r-NCvN2ZeE83lKnfWzLYGtyvwwj73EkNQ7B_mdvDzT0JK7fiR1SlTxzHie3SBg-b4rCw_EtWo4GTNUkpiwblHMXyf2UQru-GqP2DnZc718OgfY1FrTHUYBGYVvWBnQTy7bqVrAObbShsuUQ_1iHb1vkEVEMisyVnZDNfnDPDcEB9uiL_-O-0P8DccTjc7YuoYxB0ZLwXxKlSpe04E9QPj37r5EXRZBacS2p8"/>
+<div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-white text-3xl">play_circle</span>
+</div>
+<div class="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary text-white">00:45</div>
+</div>
+<div class="flex-1 flex flex-col justify-between py-1">
+<div>
+<div class="flex justify-between items-start">
+<h4 class="text-sm font-bold line-clamp-2">How AI is changing the marketing landscape in 2024</h4>
+<span class="material-symbols-outlined text-slate-600">more_vert</span>
+</div>
+<div class="mt-2 flex items-center gap-2">
+<span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Viral Score:</span>
+<div class="flex-1 h-1 bg-white/10 rounded-full">
+<div class="h-full w-[94%] bg-gradient-to-r from-primary to-accent rounded-full"></div>
+</div>
+<span class="text-[10px] font-bold text-primary">94%</span>
+</div>
+</div>
+<div class="flex gap-2 mt-4">
+<button class="flex-1 py-2 rounded-lg bg-primary/10 hover:bg-primary text-[10px] font-bold transition-colors">PREVIEW</button>
+<button class="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] font-bold transition-colors border border-white/10">DOWNLOAD</button>
+</div>
+</div>
+</div>
+<!-- Clip Item 2 -->
+<div class="glass rounded-2xl p-4 flex gap-4 group cursor-pointer border-transparent hover:border-primary/50 transition-all">
+<div class="relative w-32 aspect-[9/16] rounded-xl overflow-hidden flex-shrink-0">
+<img class="h-full w-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="Smartphone orientation video of office environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-mwLsQmqxK2df1xsUZq2eUMOGza4MVRv2CP-4YTt8WrhvV7p28kSIb9Xz9kxUQWEN6azh6Bg1hBVH2iAGTp6oLZI0GSDkgeTWIxNMaFETwFj2dFDn9lKGep77Ht8lKFviEyJq7pJtEHWIN3x2oTbjivuG4UksCtLSjWrvHHZxJFHfedhgCODOv4kk3-m3PiDX4rlqgCpkA_H7t-Oy75a-o7JYoqJg4xjQYmzXMYNwoWnLm6LehfrUuqNmrDHH9g5D7l-o0I2H_S65"/>
+<div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-white text-3xl">play_circle</span>
+</div>
+<div class="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary text-white">00:32</div>
+</div>
+<div class="flex-1 flex flex-col justify-between py-1">
+<div>
+<div class="flex justify-between items-start">
+<h4 class="text-sm font-bold line-clamp-2">Strategy Breakdown: The 3 pillars of growth</h4>
+<span class="material-symbols-outlined text-slate-600">more_vert</span>
+</div>
+<div class="mt-2 flex items-center gap-2">
+<span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Viral Score:</span>
+<div class="flex-1 h-1 bg-white/10 rounded-full">
+<div class="h-full w-[82%] bg-gradient-to-r from-primary to-accent rounded-full"></div>
+</div>
+<span class="text-[10px] font-bold text-primary">82%</span>
+</div>
+</div>
+<div class="flex gap-2 mt-4">
+<button class="flex-1 py-2 rounded-lg bg-primary/10 hover:bg-primary text-[10px] font-bold transition-colors">PREVIEW</button>
+<button class="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] font-bold transition-colors border border-white/10">DOWNLOAD</button>
+</div>
+</div>
+</div>
+<!-- Clip Item 3 -->
+<div class="glass rounded-2xl p-4 flex gap-4 group cursor-pointer border-transparent hover:border-primary/50 transition-all">
+<div class="relative w-32 aspect-[9/16] rounded-xl overflow-hidden flex-shrink-0">
+<img class="h-full w-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="Data visualization video clip preview" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAGHjggoB1NCzx4CmxknvGf365yuhcyiODH1nGLSEl9xyFX8RkaKExRepzPXmyjZg1l4FH-YJAlmzoa4YJXbsJXTK__gUdCzLN3074V8r8aYHeuStRGYdp89Cc7Qf7A9bQ-t1kVv6NeBHlpN0aBYipUsuKLsO7h6gHLsio-cVaIq3OGJWYITF67IdUw7WvcpwvKB2y7tAomDBsQPaPefonQPZEt8LIyIlBbn2-IvX1WYoGMRgM6Y5Cvx4FRWEFWoNxP1dJKzlwUzngZ"/>
+<div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-white text-3xl">play_circle</span>
+</div>
+<div class="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary text-white">00:58</div>
+</div>
+<div class="flex-1 flex flex-col justify-between py-1">
+<div>
+<div class="flex justify-between items-start">
+<h4 class="text-sm font-bold line-clamp-2">Future Predictions for SaaS companies</h4>
+<span class="material-symbols-outlined text-slate-600">more_vert</span>
+</div>
+<div class="mt-2 flex items-center gap-2">
+<span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Viral Score:</span>
+<div class="flex-1 h-1 bg-white/10 rounded-full">
+<div class="h-full w-[76%] bg-gradient-to-r from-primary to-accent rounded-full"></div>
+</div>
+<span class="text-[10px] font-bold text-primary">76%</span>
+</div>
+</div>
+<div class="flex gap-2 mt-4">
+<button class="flex-1 py-2 rounded-lg bg-primary/10 hover:bg-primary text-[10px] font-bold transition-colors">PREVIEW</button>
+<button class="flex-1 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-[10px] font-bold transition-colors border border-white/10">DOWNLOAD</button>
+</div>
+</div>
+</div>
+<!-- Clip Item 4 (Locked/Generating) -->
+<div class="glass rounded-2xl p-4 flex gap-4 relative opacity-60">
+<div class="absolute inset-0 bg-black/20 backdrop-blur-[2px] rounded-2xl flex items-center justify-center z-10">
+<div class="flex flex-col items-center gap-2">
+<div class="size-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+<span class="text-[10px] font-bold tracking-widest uppercase">Analyzing hooks...</span>
+</div>
+</div>
+<div class="relative w-32 aspect-[9/16] rounded-xl overflow-hidden flex-shrink-0 bg-slate-900"></div>
+<div class="flex-1 flex flex-col justify-between py-1">
+<div class="h-4 w-3/4 bg-white/10 rounded"></div>
+<div class="mt-4 h-2 w-full bg-white/10 rounded"></div>
+<div class="flex gap-2 mt-4">
+<div class="flex-1 h-8 bg-white/5 rounded-lg"></div>
+<div class="flex-1 h-8 bg-white/5 rounded-lg"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Sidebar Footer -->
+<div class="p-6 border-t border-white/10 glass bg-black/40">
+<button class="w-full py-4 rounded-2xl bg-gradient-to-r from-primary to-accent hover:brightness-110 text-white font-bold flex items-center justify-center gap-3 shadow-[0_10px_40px_rgba(46,29,237,0.3)] transition-all">
+<span class="material-symbols-outlined">bolt</span>
+                    GENERATE MORE CLIPS
+                </button>
+</div>
+</aside>
+</main>
+</body></html>
