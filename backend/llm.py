@@ -127,7 +127,10 @@ async def _analyze_chunk(
     """
     prompt = _build_chunk_prompt(chunk, chunk_index, total_chunks)
     raw = await _call_provider_with_retry(provider, api_key, model, prompt)
-    return _parse_llm_json(raw)
+    logger.info(f"LLM raw response for chunk {chunk_index+1}: {raw[:500]}")
+    parsed = _parse_llm_json(raw)
+    logger.info(f"Parsed {len(parsed)} clips from chunk {chunk_index+1}")
+    return parsed
 
 
 async def _rank_candidates(
@@ -183,46 +186,79 @@ def _validate_suggestions(
 ) -> list[dict]:
     """
     Final validation pass on all suggestions.
-    Now clamps timestamps to valid bounds instead of dropping entirely.
+    Tries strict 60-80s first; if nothing survives, falls back to lenient (15s+).
     """
-    logger.info(f"RAW LLM SUGGESTIONS RECEIVED FOR VALIDATION: {suggestions}")
+    logger.info(f"RAW LLM SUGGESTIONS RECEIVED FOR VALIDATION ({len(suggestions)} clips): {suggestions}")
 
+    if not suggestions:
+        logger.warning("No suggestions received from LLM at all")
+        return []
+
+    # --- First pass: strict 60-80s ---
+    strict = _filter_suggestions(suggestions, video_duration, min_dur=45, target_min=60, target_max=80)
+
+    if strict:
+        logger.info(f"Strict validation kept {len(strict)} clips")
+        return strict
+
+    # --- Fallback: lenient, accept anything 15s+ and extend short ones to 60s ---
+    logger.warning("Strict 60-80s validation returned 0 clips — falling back to lenient mode")
+    lenient = _filter_suggestions(suggestions, video_duration, min_dur=15, target_min=60, target_max=90)
+
+    if lenient:
+        logger.info(f"Lenient validation kept {len(lenient)} clips")
+    else:
+        logger.warning("No valid clips survived even lenient validation")
+
+    return lenient
+
+
+def _filter_suggestions(
+    suggestions: list[dict],
+    video_duration: float,
+    min_dur: float,
+    target_min: float,
+    target_max: float,
+) -> list[dict]:
+    """
+    Filter and adjust clip suggestions within duration bounds.
+    Returns non-overlapping clips sorted by start time.
+    """
+    import copy
     valid = []
     for s in suggestions:
+        s = copy.deepcopy(s)  # don't mutate originals (needed for fallback)
+
         # Swap if start > end
         if s["start"] > s["end"]:
             s["start"], s["end"] = s["end"], s["start"]
 
-        # Clamp to valid bounds instead of dropping
+        # Clamp to valid bounds
         s["start"] = max(0, s["start"])
         s["end"] = min(s["end"], video_duration)
 
-        # Check if clip is still valid after clamping
         if s["start"] >= s["end"]:
-            logger.warning(f"Dropping clip - invalid after clamping: start={s['start']}, end={s['end']}")
             continue
 
         dur = s["end"] - s["start"]
 
-        # Enforce 60-80 second clip duration
-        if dur < 45:
-            logger.warning(f"Dropping clip - too short ({dur:.1f}s): {s.get('title')}")
+        if dur < min_dur:
+            logger.warning(f"Dropping clip - too short ({dur:.1f}s < {min_dur}s): {s.get('title')}")
             continue
-        if dur < 60:
-            # Try to extend to 60s if possible within video bounds
-            s["end"] = min(s["start"] + 60, video_duration)
+        if dur < target_min:
+            # Try to extend
+            s["end"] = min(s["start"] + target_min, video_duration)
             dur = s["end"] - s["start"]
             logger.info(f"Extended short clip to {dur:.1f}s: {s.get('title')}")
-        if dur > 80:
-            # Trim to 80 seconds from start
-            s["end"] = s["start"] + 80
-            dur = 80
-            logger.info(f"Trimmed long clip to 80s: {s.get('title')}")
+        if dur > target_max:
+            s["end"] = s["start"] + target_max
+            dur = target_max
+            logger.info(f"Trimmed long clip to {target_max}s: {s.get('title')}")
 
         valid.append(s)
 
     valid.sort(key=lambda x: x["start"])
-    
+
     # Remove overlaps
     non_overlapping = []
     last_end = -1.0
@@ -230,10 +266,7 @@ def _validate_suggestions(
         if s["start"] >= last_end:
             non_overlapping.append(s)
             last_end = s["end"]
-            
-    if not non_overlapping:
-        logger.warning("No valid clips survived the validation stage.")
-        
+
     return non_overlapping
 
 
@@ -524,10 +557,27 @@ def _parse_llm_json(raw: str) -> list[dict]:
     if not raw:
         return []
 
+    # Try to extract just the JSON array if there's extra text around it
+    # (some LLMs add explanatory text before/after the JSON)
+    if not raw.startswith("["):
+        bracket_start = raw.find("[")
+        if bracket_start != -1:
+            raw = raw[bracket_start:]
+
+    if not raw.endswith("]"):
+        bracket_end = raw.rfind("]")
+        if bracket_end != -1:
+            raw = raw[:bracket_end + 1]
+
+    # Fix trailing commas before ] (common LLM mistake)
+    raw = re.sub(r",\s*]", "]", raw)
+    # Fix trailing commas before } (common LLM mistake)
+    raw = re.sub(r",\s*}", "}", raw)
+
     try:
         parsed = json.loads(raw)
     except json.JSONDecodeError:
-        logger.error("Failed to parse LLM JSON: %.200s", raw)
+        logger.error("Failed to parse LLM JSON: %.500s", raw)
         return []
 
     if not isinstance(parsed, list):
@@ -544,14 +594,20 @@ def _parse_llm_json(raw: str) -> list[dict]:
             continue
         try:
             hashtags = item.get("hashtags", [])
-            if not isinstance(hashtags, list):
+            if isinstance(hashtags, str):
+                # LLM returned a single string like "#tag1 #tag2" — split it
+                hashtags = [h.strip() for h in hashtags.replace(",", " ").split() if h.strip()]
+            elif not isinstance(hashtags, list):
                 hashtags = []
-            hashtags = [str(h) for h in hashtags]
+            hashtags = [str(h) for h in hashtags if h]
 
             tags = item.get("tags", [])
-            if not isinstance(tags, list):
+            if isinstance(tags, str):
+                # LLM returned a single string like "keyword1, keyword2" — split it
+                tags = [t.strip() for t in tags.replace(",", " ").split() if t.strip()]
+            elif not isinstance(tags, list):
                 tags = []
-            tags = [str(t) for t in tags]
+            tags = [str(t) for t in tags if t]
 
             valid.append({
                 "start": float(item["start"]),

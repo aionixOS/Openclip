@@ -236,34 +236,73 @@ async def _reframe_dynamic_zoom(
     last_face_cy = vid_height / 2.0
     
     frames_since_face_lost = 0
-    ZOOM_OUT_HOLD = 8
-    ZOOM_OUT_DUR = 45
+    ZOOM_OUT_HOLD = int(2 * fps)  # wait 2s after face loss before zoom-out starts
+    ZOOM_OUT_DUR = int(1 * fps)   # complete zoom-out transition in ~1s
+    NO_FACE_ZOOM_RETAIN = 0.75    # keep 75% of last face zoom (relative to 1.0)
+    REACQUIRE_DUR = int(0.7 * fps)  # smooth zoom/pan back to face in ~0.7s
+
+    # Track rendered state so reacquire can ease from current framing.
+    rendered_zoom = 1.0
+    rendered_cx = vid_width / 2.0
+    rendered_cy = vid_height / 2.0
+    prev_has_face = False
+
+    reacquire_frames = REACQUIRE_DUR
+    reacquire_start_zoom = rendered_zoom
+    reacquire_start_cx = rendered_cx
+    reacquire_start_cy = rendered_cy
+    reacquire_end_zoom = rendered_zoom
+    reacquire_end_cx = rendered_cx
+    reacquire_end_cy = rendered_cy
 
     # Step 4 & 5: Interpolate keyframes and convert to crop parameters
     for f_idx in range(total_frames):
         sec = min(int(f_idx / fps), total_secs - 1)
         target = sec_targets[sec]
-        
+
         current_zoom = 1.0
         current_cx = vid_width / 2.0
         current_cy = vid_height / 2.0
-        
+
         if target["has_face"]:
             frames_since_face_lost = 0
-            current_zoom = target["zoom"]
-            current_cx = target["cx"]
-            current_cy = target["cy"]
-            
-            # Save for zoom out
-            last_face_zoom = current_zoom
-            last_face_cx = current_cx
-            last_face_cy = current_cy
+            face_zoom = target["zoom"]
+            face_cx = target["cx"]
+            face_cy = target["cy"]
+
+            # Start a smooth transition when a face is re-detected.
+            if not prev_has_face:
+                reacquire_frames = 0
+                reacquire_start_zoom = rendered_zoom
+                reacquire_start_cx = rendered_cx
+                reacquire_start_cy = rendered_cy
+                reacquire_end_zoom = face_zoom
+                reacquire_end_cx = face_cx
+                reacquire_end_cy = face_cy
+
+            if reacquire_frames < REACQUIRE_DUR:
+                t = min(1.0, (reacquire_frames + 1) / float(REACQUIRE_DUR))
+                eased = _ease_in_out(t)
+                current_zoom = reacquire_start_zoom + (reacquire_end_zoom - reacquire_start_zoom) * eased
+                current_cx = reacquire_start_cx + (reacquire_end_cx - reacquire_start_cx) * eased
+                current_cy = reacquire_start_cy + (reacquire_end_cy - reacquire_start_cy) * eased
+                reacquire_frames += 1
+            else:
+                current_zoom = face_zoom
+                current_cx = face_cx
+                current_cy = face_cy
+
+            last_face_zoom = face_zoom
+            last_face_cx = face_cx
+            last_face_cy = face_cy
         else:
             frames_since_face_lost += 1
+            reacquire_frames = REACQUIRE_DUR
             if frames_since_face_lost > ZOOM_OUT_HOLD:
                 progress = min(1.0, (frames_since_face_lost - ZOOM_OUT_HOLD) / float(ZOOM_OUT_DUR))
                 eased = _ease_in_out(progress)
-                current_zoom = last_face_zoom + (1.0 - last_face_zoom) * eased
+                target_zoom = 1.0 + (last_face_zoom - 1.0) * NO_FACE_ZOOM_RETAIN
+                current_zoom = last_face_zoom + (target_zoom - last_face_zoom) * eased
                 current_cx = last_face_cx + (vid_width / 2.0 - last_face_cx) * eased
                 current_cy = last_face_cy + (vid_height / 2.0 - last_face_cy) * eased
             else:
@@ -271,6 +310,11 @@ async def _reframe_dynamic_zoom(
                 current_zoom = last_face_zoom
                 current_cx = last_face_cx
                 current_cy = last_face_cy
+
+        prev_has_face = target["has_face"]
+        rendered_zoom = current_zoom
+        rendered_cx = current_cx
+        rendered_cy = current_cy
 
         crop_h = float(vid_height) / current_zoom
         crop_w = crop_h * 9.0 / 16.0
@@ -281,7 +325,7 @@ async def _reframe_dynamic_zoom(
             crop_h = crop_w * 16.0 / 9.0
             if crop_h > vid_height:
                 crop_h = vid_height
-                crop_w = crop_h * 9.0 / 16.0
+            crop_w = crop_h * 9.0 / 16.0
 
         crop_x = current_cx - crop_w / 2.0
         crop_y = current_cy - crop_h / 2.0

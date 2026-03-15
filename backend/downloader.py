@@ -94,8 +94,9 @@ def download_video(
         "--newline",
         "--js-runtimes", "node",
         "--extractor-args", "youtube:player_client=web,default",
-        # Prefer best video+audio up to 1080p, fallback to single-file MP4
-        "-f", "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
+        # Prefer best video+audio up to 1080p, prioritise h264 (avc) codec
+        # to avoid AV1/VP9 transcoding which causes Windows file-lock issues
+        "-f", "bestvideo[height<=1080][vcodec^=avc1]+bestaudio[ext=m4a]/bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/137+140/136+140/22/bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
         "--merge-output-format", "mp4",
         "--no-mtime",
         "--ffmpeg-location", ffmpeg_dir,
@@ -148,12 +149,32 @@ def download_video(
 
     process.wait()
 
-    # Small delay to let Windows release file handles
-    time.sleep(1)
+    # Longer delay to let Windows release file handles after merge
+    time.sleep(3)
 
     if process.returncode != 0:
         # Check if the file was actually created despite the error
-        # (happens when merge fails but files exist)
+        # (common on Windows: merge succeeds but temp file rename fails due to lock)
+        # Try waiting a bit more and check for temp files to rename
+        for retry in range(3):
+            downloaded_files = glob.glob(os.path.join(output_dir, "*.mp4"))
+            temp_files = glob.glob(os.path.join(output_dir, "*.temp.mp4"))
+            if downloaded_files:
+                break
+            # Try renaming temp files manually if they exist
+            if temp_files:
+                for tf in temp_files:
+                    final_name = tf.replace(".temp.mp4", ".mp4")
+                    try:
+                        os.rename(tf, final_name)
+                        logger.info("Manually renamed temp file: %s -> %s", tf, final_name)
+                    except OSError:
+                        pass
+                downloaded_files = glob.glob(os.path.join(output_dir, "*.mp4"))
+                if downloaded_files:
+                    break
+            time.sleep(2)
+
         downloaded_files = glob.glob(os.path.join(output_dir, "*.mp4"))
         if downloaded_files:
             logger.warning("yt-dlp exited with code %d but MP4 file exists, continuing...", process.returncode)
