@@ -273,22 +273,6 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {/* Footer */}
-            <footer className="mt-20 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-white/5 pt-8">
-                <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                        <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                    </div>
-                    <span className="text-sm font-bold text-white">OpenClip</span>
-                </div>
-                <div className="flex gap-6 text-xs text-slate-500">
-                    <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-                    <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-                    <a href="#" className="hover:text-white transition-colors">Help Center</a>
-                    <a href="#" className="hover:text-white transition-colors">Contact</a>
-                </div>
-                <p className="text-xs text-slate-600">© 2025 OpenClip AI. All rights reserved.</p>
-            </footer>
         </div>
     );
 }
