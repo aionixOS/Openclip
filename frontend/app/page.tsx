@@ -109,8 +109,9 @@ export default function Dashboard() {
             <section className="relative mb-16 overflow-hidden rounded-3xl">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-accent-purple/20 to-transparent" />
                 <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80')] bg-cover bg-center opacity-20 mix-blend-overlay" />
-                <div className="relative flex min-h-[360px] flex-col items-start justify-center p-8 lg:p-16">
-                    <div className="max-w-2xl">
+                <div className="relative flex min-h-[360px] items-center p-8 lg:p-16">
+                    {/* Text content */}
+                    <div className="flex-1 max-w-xl">
                         <span className="mb-4 inline-block rounded-full bg-primary/20 border border-primary/30 px-4 py-1 text-xs font-bold uppercase tracking-widest text-primary">
                             AI Powered Editing
                         </span>
@@ -148,6 +149,16 @@ export default function Dashboard() {
                                 </button>
                             </form>
                         </div>
+                    </div>
+
+                    {/* Hero character */}
+                    <div className="hidden lg:absolute lg:block right-0 top-0 bottom-0 w-[38%] pointer-events-none overflow-hidden" style={{ position: "absolute" }}>
+                        <img
+                            src="/hero-character.png"
+                            alt="OpenClip mascot"
+                            className="absolute bottom-0 right-0 w-full h-auto mix-blend-screen select-none"
+                            style={{ maxHeight: "115%", objectFit: "contain", objectPosition: "bottom right" }}
+                        />
                     </div>
                 </div>
             </section>
