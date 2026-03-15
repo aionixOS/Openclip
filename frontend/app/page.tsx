@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getProjects, deleteProject, createProject, getApiBaseUrl } from "@/lib/api";
 import { Project } from "@/lib/types";
 
@@ -46,6 +46,8 @@ function StatusBadge({ status }: { status: Project["status"] }) {
 
 export default function Dashboard() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const searchQuery = searchParams.get("q") || "";
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<"all" | "processing" | "done" | "error">("all");
@@ -88,10 +90,15 @@ export default function Dashboard() {
     };
 
     const filtered = projects.filter(p => {
-        if (filter === "all") return true;
-        if (filter === "done") return p.status === "done";
-        if (filter === "error") return p.status === "error";
-        if (filter === "processing") return !["done", "error"].includes(p.status);
+        if (filter === "done" && p.status !== "done") return false;
+        if (filter === "error" && p.status !== "error") return false;
+        if (filter === "processing" && ["done", "error"].includes(p.status)) return false;
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            const title = (p.title || "").toLowerCase();
+            const url = (p.youtube_url || "").toLowerCase();
+            if (!title.includes(q) && !url.includes(q)) return false;
+        }
         return true;
     });
 
