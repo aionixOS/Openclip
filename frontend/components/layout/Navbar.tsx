@@ -27,12 +27,8 @@ export function Navbar() {
             <div className="mx-auto flex max-w-7xl items-center justify-between">
                 <div className="flex items-center gap-10">
                     <Link href="/" className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary glow-primary">
-                            <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M2 6a2 2 0 012-2h16a2 2 0 012 2v.5a.5.5 0 01-1 0V6a1 1 0 00-1-1H4a1 1 0 00-1 1v12a1 1 0 001 1h16a1 1 0 001-1v-.5a.5.5 0 011 0V18a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
-                                <path d="M15.5 8a.5.5 0 01.5.5v7a.5.5 0 01-.5.5h-7a.5.5 0 010-1H15V8.5a.5.5 0 01.5-.5z"/>
-                                <path fillRule="evenodd" d="M9.854 8.146a.5.5 0 010 .708L7.707 11H14.5a.5.5 0 010 1H7.707l2.147 2.146a.5.5 0 01-.708.708l-3-3a.5.5 0 010-.708l3-3a.5.5 0 01.708 0z" clipRule="evenodd"/>
-                            </svg>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden flex-shrink-0">
+                            <img src="/logo.png" alt="OpenClip logo" className="h-full w-full object-contain" />
                         </div>
                         <span className="text-xl font-bold tracking-tight text-white">OpenClip</span>
                     </Link>
