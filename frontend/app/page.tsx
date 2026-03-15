@@ -117,7 +117,8 @@ export default function Dashboard() {
                 >
                     <source src="/hero-bg.mp4" type="video/mp4" />
                 </video>
-                <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-primary/20 to-black/50" />
+                <div className="absolute inset-0 bg-black/75" />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/40" />
                 <div className="relative flex min-h-[360px] items-center p-8 lg:p-16">
                     {/* Text content */}
                     <div className="flex-1 max-w-xl">
@@ -139,20 +140,20 @@ export default function Dashboard() {
                                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
                                 Create New Project
                             </Link>
-                            <form onSubmit={handleQuickCreate} className="flex flex-1 min-w-[280px] items-center gap-2 rounded-xl glass px-4 py-2.5 border border-white/10 focus-within:border-primary/50 transition-all h-[50px]">
+                            <form onSubmit={handleQuickCreate} className="flex flex-1 min-w-[280px] items-center gap-2 rounded-xl bg-black/50 px-4 py-2.5 border border-white/20 focus-within:border-primary/50 transition-all h-[50px]">
                                 <svg className="h-4 w-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
                                 <input
                                     ref={urlRef}
                                     value={urlInput}
                                     onChange={e => setUrlInput(e.target.value)}
-                                    className="flex-1 bg-transparent border-none text-sm text-white placeholder-slate-500 focus:ring-0 focus:outline-none p-0"
+                                    className="flex-1 bg-transparent border-none text-sm text-white placeholder-slate-400 focus:ring-0 focus:outline-none p-0"
                                     placeholder="Paste YouTube link..."
                                     type="text"
                                 />
                                 <button
                                     type="button"
                                     onClick={handlePaste}
-                                    className="rounded-lg bg-primary/20 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/30 transition-colors uppercase tracking-wider"
+                                    className="rounded-lg bg-primary/30 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/50 transition-colors uppercase tracking-wider"
                                 >
                                     Paste
                                 </button>
@@ -165,8 +166,8 @@ export default function Dashboard() {
                         <img
                             src="/hero-character.png"
                             alt="OpenClip mascot"
-                            className="absolute bottom-0 right-0 w-full h-auto mix-blend-screen select-none"
-                            style={{ maxHeight: "115%", objectFit: "contain", objectPosition: "bottom right" }}
+                            className="absolute bottom-0 right-0 w-full h-auto select-none"
+                            style={{ maxHeight: "115%", objectFit: "contain", objectPosition: "bottom right", mixBlendMode: "lighten" }}
                         />
                     </div>
                 </div>
