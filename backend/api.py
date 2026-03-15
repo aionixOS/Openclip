@@ -44,8 +44,9 @@ from dotenv import load_dotenv  # type: ignore
 load_dotenv()
 
 import os
-# Ensure ffmpeg and nodejs are globally available to all subprocesses
-os.environ["PATH"] = os.environ.get("PATH", "") + r";C:\Program Files\nodejs;C:\Users\Prajjwal\Downloads\Openclip\backend\bin"
+# Ensure ffmpeg is available to all subprocesses (Linux/Replit paths)
+_extra_paths = os.path.join(os.path.dirname(__file__), "bin")
+os.environ["PATH"] = _extra_paths + ":" + os.environ.get("PATH", "")
 
 # Internal modules
 import database  # type: ignore
@@ -79,9 +80,18 @@ app = FastAPI(
 )
 
 # Allow the Next.js frontend dev server
+_allowed_origins = [
+    "http://localhost:3000",
+    "http://localhost:5000",
+]
+_replit_domain = os.environ.get("REPLIT_DEV_DOMAIN")
+if _replit_domain:
+    _allowed_origins.append(f"https://{_replit_domain}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=_allowed_origins,
+    allow_origin_regex=r"https://.*\.replit\.dev",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
