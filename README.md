@@ -6,7 +6,7 @@
 > Paste a YouTube URL → download → auto-clip → export.
 
 [![GitHub Stars](https://img.shields.io/github/stars/aionixos/openclip?style=social)](https://github.com/aionixos/openclip)
-[![License](https://img.shields.io/badge/license-TBD-blue)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Built with AI](https://img.shields.io/badge/built%20with-AI-blueviolet)](https://github.com/aionixos/openclip)
 [![Age](https://img.shields.io/badge/founder%20age-17-ff6b6b)](https://github.com/aionixos)
 
@@ -94,30 +94,36 @@ openclip/
 
 ## Quick Start
 
-### Backend
+### One-Line Install
 
 ```bash
-cd backend
-pip install -r requirements.txt
-python api.py
-# → http://localhost:8000
+git clone https://github.com/aionixos/openclip.git && cd openclip && bash setup.sh
 ```
 
-### Frontend
+Or if you've already cloned the repo:
 
 ```bash
-cd frontend
-npm install
-npm run dev
-# → http://localhost:3000
+bash setup.sh
 ```
+
+Then start the app:
+
+```bash
+bash start.sh
+```
+
+This will start:
+- **Frontend:** http://localhost:3000
+- **Backend:** http://localhost:8000
+- **API Docs:** http://localhost:8000/docs
 
 ### Prerequisites
 
-- **Python 3.10+**
+- **Python 3.11+**
 - **Node.js 18+**
 - **FFmpeg** installed and on PATH
-- **yt-dlp** installed and on PATH
+
+> The setup script will check all dependencies and install yt-dlp automatically if needed.
 
 ---
 
@@ -167,9 +173,142 @@ OpenClip is open to contributors of all levels. If you find a bug, have a featur
 
 ---
 
+## Frequently Asked Questions
+
+**Q1. Do I need to pay for anything?**
+```
+No. OpenClip is 100% free and local.
+You only need an API key from your chosen LLM provider.
+All providers have free tiers:
+  Gemini 1.5 Flash → 1,500 requests/day free
+  Ollama           → completely free, runs locally
+  OpenAI/Anthropic → paid but cheap (~$0.01 per video)
+FFmpeg, yt-dlp, Python, Node — all free.
+```
+
+---
+
+**Q2. Where is my data stored?**
+```
+Everything stays on your computer. Nothing goes to any cloud.
+  Videos    → /tmp folder on your machine
+  Database  → /data/openclip.db (SQLite file)
+  Settings  → same SQLite file, API keys encrypted
+  Clips     → /tmp/{project_id}/clips/
+
+The only external calls are:
+  yt-dlp   → YouTube (to download)
+  LLM API  → your chosen provider (transcript only)
+```
+
+---
+
+**Q3. How do I add my API key?**
+```
+1. Open OpenClip in browser (http://localhost:3000)
+2. Click Settings (gear icon, top right)
+3. Choose your LLM provider from dropdown
+4. Paste your API key
+5. Click Save
+
+Your key is encrypted and stored locally.
+It never leaves your machine except to call the LLM API.
+```
+
+---
+
+**Q4. FFmpeg is not working / not found**
+```
+FFmpeg must be installed separately. Steps:
+
+Windows:
+  1. Download from https://ffmpeg.org/download.html
+  2. Extract zip
+  3. Add bin/ folder to System PATH
+  4. Restart terminal
+  5. Test: ffmpeg -version
+
+Mac:
+  brew install ffmpeg
+
+Linux:
+  sudo apt install ffmpeg
+
+Then restart OpenClip backend.
+```
+
+---
+
+**Q5. Can I contribute if I only know frontend / only know Python?**
+```
+Yes. The project is split cleanly:
+
+Frontend only (Next.js/TypeScript):
+  Look for issues labeled "frontend"
+  You never need to touch Python
+
+Backend only (Python/FastAPI):
+  Look for issues labeled "backend"
+  You never need to touch React
+
+Docs only:
+  Look for issues labeled "documentation"
+  Just markdown, no code needed
+
+Design only:
+  Look for issues labeled "design"
+  Figma or CSS improvements welcome
+```
+
+---
+
+**Q6. My video failed to process, what do I do?**
+```
+Check in this order:
+
+1. Is FFmpeg installed?
+   Run: ffmpeg -version
+
+2. Is the video public?
+   Private/age-restricted videos cannot be downloaded.
+
+3. Did the LLM fail?
+   Check your API key in Settings.
+   Check your provider's quota/limits.
+
+4. Check terminal logs:
+   Backend terminal shows exact error.
+   Copy the error and open a GitHub Issue.
+
+5. Try a shorter video first (under 10 minutes)
+   to verify your setup works.
+```
+
+---
+
+**Q7. How do I suggest a feature or report a bug?**
+```
+Feature idea:
+  Go to GitHub → Discussions → Ideas
+  Describe what you want and why.
+  Upvote existing ideas you agree with.
+
+Bug report:
+  Go to GitHub → Issues → New Issue
+  Choose "Bug Report" template
+  Fill in all fields including your terminal error.
+
+Want to build something yourself:
+  Comment on the issue "I'll work on this"
+  Fork the repo, build it, open a Pull Request.
+  We review and merge if it's good.
+```
+
+---
+
 ## License
 
-Open-source. License TBD.
+MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 

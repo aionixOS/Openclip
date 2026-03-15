@@ -219,7 +219,10 @@ async def _get_manual_captions(youtube_url: str) -> list[dict]:
     ]
 
     env = os.environ.copy()
-    env["PATH"] = env.get("PATH", "") + r";C:\Program Files\nodejs;C:\Users\Prajjwal\Downloads\Openclip\backend\bin"
+    # Add local bin directory to PATH for bundled ffmpeg
+    backend_dir = os.path.dirname(os.path.abspath(__file__))
+    bin_dir = os.path.join(backend_dir, "bin")
+    env["PATH"] = env.get("PATH", "") + os.pathsep + bin_dir
 
     try:
         logger.info("Running yt-dlp for manual captions...")
@@ -267,7 +270,10 @@ async def _get_auto_captions(youtube_url: str) -> list[dict]:
     ]
 
     env = os.environ.copy()
-    env["PATH"] = env.get("PATH", "") + r";C:\Program Files\nodejs;C:\Users\Prajjwal\Downloads\Openclip\backend\bin"
+    # Add local bin directory to PATH for bundled ffmpeg
+    backend_dir = os.path.dirname(os.path.abspath(__file__))
+    bin_dir = os.path.join(backend_dir, "bin")
+    env["PATH"] = env.get("PATH", "") + os.pathsep + bin_dir
 
     try:
         logger.info("Running yt-dlp for auto-captions: %s", " ".join(cmd))

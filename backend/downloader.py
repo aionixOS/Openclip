@@ -113,8 +113,10 @@ def download_video(
     logger.info("Running yt-dlp: %s", " ".join(cmd))
 
     env = os.environ.copy()
-    # Ensure standard Windows paths are present
-    env["PATH"] = env.get("PATH", "") + r";C:\Program Files\nodejs;C:\Users\Prajjwal\Downloads\Openclip\backend\bin"
+    # Add local bin directory to PATH for bundled ffmpeg
+    backend_dir = os.path.dirname(os.path.abspath(__file__))
+    bin_dir = os.path.join(backend_dir, "bin")
+    env["PATH"] = env.get("PATH", "") + os.pathsep + bin_dir
     
     process = subprocess.Popen(
         cmd,
@@ -231,7 +233,7 @@ def _get_video_title(url: str) -> Optional[str]:
     """
     try:
         result = subprocess.run(
-            [r"C:\Users\Prajjwal\Downloads\Openclip\backend\.venv\Scripts\yt-dlp.exe", "--print", "title", url],
+            [_resolve_ytdlp_exe(), "--print", "title", url],
             capture_output=True,
             text=True,
             timeout=30,
