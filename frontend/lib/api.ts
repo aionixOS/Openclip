@@ -15,9 +15,14 @@ export function getApiBaseUrl(): string {
 }
 
 export const getProjects = async (): Promise<Project[]> => {
-    const res = await fetch(`${getBaseUrl()}/api/projects`, { cache: 'no-store' });
-    if (!res.ok) throw new Error("Failed to fetch projects");
-    return res.json();
+    try {
+        const res = await fetch(`${getBaseUrl()}/api/projects`, { cache: 'no-store' });
+        if (!res.ok) return [];
+        return res.json();
+    } catch {
+        // Backend not running or network error - return empty array
+        return [];
+    }
 };
 
 export const getProject = async (id: string): Promise<Project & { clips: Clip[] }> => {
@@ -46,9 +51,29 @@ export const deleteProject = async (id: string): Promise<void> => {
 };
 
 export async function getSettings(): Promise<Settings> {
-    const res = await fetch(`${getBaseUrl()}/api/settings`);
-    if (!res.ok) throw new Error("Failed to fetch settings");
-    return res.json();
+    try {
+        const res = await fetch(`${getBaseUrl()}/api/settings`);
+        if (!res.ok) {
+            // Return default settings if backend returns error
+            return {
+                llm_provider: "openai",
+                llm_model: "gpt-4o",
+                whisper_model: "base",
+                caption_style: "viral_word",
+                has_api_key: false
+            };
+        }
+        return res.json();
+    } catch {
+        // Backend not running - return default settings
+        return {
+            llm_provider: "openai",
+            llm_model: "gpt-4o",
+            whisper_model: "base",
+            caption_style: "viral_word",
+            has_api_key: false
+        };
+    }
 }
 
 export async function saveSettings(

@@ -167,7 +167,7 @@ export default function Dashboard() {
                             src="/hero-character.png"
                             alt="OpenClip mascot"
                             className="absolute bottom-0 right-0 w-full h-auto select-none"
-                            style={{ maxHeight: "115%", objectFit: "contain", objectPosition: "bottom right", mixBlendMode: "lighten" }}
+                            style={{ maxHeight: "115%", objectFit: "contain", objectPosition: "bottom right" }}
                         />
                     </div>
                 </div>
