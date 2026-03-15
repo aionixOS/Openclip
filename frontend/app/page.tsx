@@ -107,8 +107,17 @@ export default function Dashboard() {
 
             {/* Hero Banner */}
             <section className="relative mb-16 overflow-hidden rounded-3xl">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-accent-purple/20 to-transparent" />
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80')] bg-cover bg-center opacity-20 mix-blend-overlay" />
+                <video
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ transform: "scaleX(1.05)" }}
+                >
+                    <source src="/hero-bg.mp4" type="video/mp4" />
+                </video>
+                <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-primary/20 to-black/50" />
                 <div className="relative flex min-h-[360px] items-center p-8 lg:p-16">
                     {/* Text content */}
                     <div className="flex-1 max-w-xl">
