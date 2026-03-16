@@ -1,3 +1,5 @@
+[![Watch the video](https://img.youtube.com/vi/2z7CT3J_25M/maxresdefault.jpg)](https://www.youtube.com/watch?v=2z7CT3J_25M)
+
 # OpenClip by AIONIX
 
 ![OpenClip Dashboard Preview](frontend/public/screenshot.png)
