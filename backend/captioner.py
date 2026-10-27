@@ -1,4 +1,5 @@
 import subprocess
+import ffmpeg_utils
 import os
 import json
 import re
@@ -134,30 +135,42 @@ CAPTION_STYLES: Dict[str, Dict[str, Any]] = {
 def _extract_clip_segments(transcript: list[dict], clip_start: float, clip_end: float) -> list[dict]:
     result = []
     for seg in transcript:
-        # Check overlap with clip window
-        if seg['end'] < clip_start or seg['start'] > clip_end:
+        # Ignore segments outside clip window
+        if seg['end'] <= clip_start or seg['start'] >= clip_end:
+            continue
+        clean_text = re.sub(r"\[.*?\]", "", seg.get('text', '')).strip()
+        if not clean_text:
+            continue
+        adj_start = max(0.0, seg['start'] - clip_start)
+        adj_end = min(clip_end - clip_start, seg['end'] - clip_start)
+        if adj_end - adj_start <= 0.1:
             continue
         adjusted = {
-            "start": max(0.0, seg['start'] - clip_start),
-            "end": min(clip_end - clip_start, seg['end'] - clip_start),
-            "text": seg['text'].strip()
+            "start": adj_start,
+            "end": adj_end,
+            "text": clean_text
         }
-        if adjusted['text'] and adjusted['end'] > adjusted['start']:
-            if 'words' in seg:
-                # filter and adjust word-level timestamps relative to clip_start
-                adj_words = []
-                for w in seg['words']: # type: ignore
-                    w_start = w['start'] - clip_start
-                    w_end = w['end'] - clip_start
-                    if w_end > 0 and w_start < (clip_end - clip_start):
-                        adj_words.append({
-                            "word": w['word'],
-                            "start": max(0.0, w_start),
-                            "end": min(clip_end - clip_start, w_end)
-                        })
+        if 'words' in seg:
+            adj_words = []
+            for w in seg['words']: # type: ignore
+                w_start = w['start'] - clip_start
+                w_end = w['end'] - clip_start
+                if w_end > 0 and w_start < (clip_end - clip_start):
+                    adj_words.append({
+                        "word": w['word'],
+                        "start": max(0.0, w_start),
+                        "end": min(clip_end - clip_start, w_end)
+                    })
+            if adj_words:
                 adjusted['words'] = adj_words
-            
-            result.append(adjusted)
+        result.append(adjusted)
+
+    # Strictly sort and clamp consecutive segments to eliminate overlaps
+    result.sort(key=lambda s: s['start'])
+    for i in range(len(result) - 1):
+        if result[i]['end'] > result[i + 1]['start']:
+            result[i]['end'] = max(result[i]['start'] + 0.05, result[i + 1]['start'])
+
     return result
 
 def _build_caption_groups(segments: list[dict], max_chars: int) -> list[dict]:
@@ -320,47 +333,33 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
     lines = [header]
 
+    raw_events: List[Dict[str, Any]] = []
+
     for g_idx, group in enumerate(groups):
         animation = style['animation']
 
         if animation == 'word_by_word':
-            # Build up words one by one
             shown_words = []
             for i, word_data in enumerate(group['words']):
                 shown_words.append(word_data['word'])
                 display_text = " ".join(shown_words)
                 start_time = float(word_data['start'])
-                start_ts = seconds_to_ass(start_time)
-                
-                # End timestamp is either the start of the next word, or the group's end if it's the last word
                 if i + 1 < len(group['words']):
                     end_time = float(group['words'][i+1]['start'])
                 else:
-                    # Last word in the group. Look ahead to next group to prevent overlap.
                     end_time = float(group['end'])
                     if g_idx + 1 < len(groups):
                         next_words: list = groups[g_idx+1].get('words', [])
                         if next_words:
                             end_time = min(end_time, float(next_words[0]['start']))
-                    # Force remove caption shortly after the last word is spoken (max 0.6s delay)
                     end_time = min(end_time, start_time + 0.6)
-                    
-                end_ts = seconds_to_ass(end_time)
-                
-                # Center position
                 text = f"{{\\pos(540,1500)}}{display_text}"
-                lines.append(
-                    f"Dialogue: 0,{start_ts},{end_ts},"
-                    f"Default,,0,0,0,,{text}\n"
-                )
+                raw_events.append({'start': start_time, 'end': max(start_time + 0.05, end_time), 'text': text})
 
         elif animation == 'highlight':
-            # Show full group, highlight current word
             words = [w['word'] for w in group['words']]
             for i, word_data in enumerate(group['words']):
                 start_time = float(word_data['start'])
-                start_ts = seconds_to_ass(start_time)
-                
                 if i + 1 < len(group['words']):
                     end_time = float(group['words'][i+1]['start'])
                 else:
@@ -369,16 +368,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         next_words: list = groups[g_idx+1].get('words', [])
                         if next_words:
                             end_time = min(end_time, float(next_words[0]['start']))
-                    # Force remove caption shortly after the last word is spoken (max 0.6s delay)
                     end_time = min(end_time, start_time + 0.6)
-                    
-                end_ts = seconds_to_ass(end_time)
-                
-                # Build colored text
                 colored_parts: list[str] = []
                 for j, w in enumerate(words):
                     if j == i:
-                        # Current word — highlight color
                         colored_parts.append(
                             f"{{\\1c{highlight}&\\bord{outline_w+1}}}{w}"
                             f"{{\\1c{primary}&\\bord{outline_w}}}"
@@ -387,19 +380,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         colored_parts.append(w)
                 display_text = " ".join(colored_parts)
                 text = f"{{\\pos(540,1500)}}{display_text}"
-                lines.append(
-                    f"Dialogue: 0,{start_ts},{end_ts},"
-                    f"Default,,0,0,0,,{text}\n"
-                )
+                raw_events.append({'start': start_time, 'end': max(start_time + 0.05, end_time), 'text': text})
 
         elif animation == 'one_word':
-            # Show each word ALONE (not building up)
             for i, word_data in enumerate(group['words']):
                 word_text = word_data['word'].upper()
                 start_time = float(word_data['start'])
-                start_ts = seconds_to_ass(start_time)
-
-                # End at start of next word, or clamp at group end
                 if i + 1 < len(group['words']):
                     end_time = float(group['words'][i + 1]['start'])
                 else:
@@ -408,15 +394,25 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         next_words: list = groups[g_idx + 1].get('words', [])
                         if next_words:
                             end_time = min(end_time, float(next_words[0]['start']))
-                    # Force remove shortly after last word (max 0.6s)
                     end_time = min(end_time, start_time + 0.6)
-
-                end_ts = seconds_to_ass(end_time)
                 text = f"{{\\pos(540,1500)\\fscx105\\fscy105}}{word_text}"
-                lines.append(
-                    f"Dialogue: 0,{start_ts},{end_ts},"
-                    f"Default,,0,0,0,,{text}\n"
-                )
+                raw_events.append({'start': start_time, 'end': max(start_time + 0.05, end_time), 'text': text})
+
+    # Sort and strictly de-conflict so no two subtitles ever overlap
+    raw_events.sort(key=lambda e: e['start'])
+    for k in range(len(raw_events) - 1):
+        if raw_events[k]['end'] > raw_events[k + 1]['start']:
+            raw_events[k]['end'] = raw_events[k + 1]['start']
+        if raw_events[k]['end'] <= raw_events[k]['start']:
+            raw_events[k]['end'] = raw_events[k]['start'] + 0.05
+
+    for ev in raw_events:
+        start_ts = seconds_to_ass(ev['start'])
+        end_ts = seconds_to_ass(ev['end'])
+        lines.append(
+            f"Dialogue: 0,{start_ts},{end_ts},"
+            f"Default,,0,0,0,,{ev['text']}\n"
+        )
 
     with open(ass_path, 'w', encoding='utf-8') as f:
         f.writelines(lines)
@@ -426,13 +422,15 @@ async def _burn_ass_to_video(input_path: str, ass_path: str, output_path: str) -
     # to avoid escaping issues. Or we can use relative paths if we set cwd.
     # Let's fix the path for ffmpeg filter: replace \ with / and escape : as \:
     safe_ass_path = ass_path.replace("\\", "/").replace(":", "\\:")
-    ffmpeg_path = os.path.expandvars(
-        r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin\ffmpeg.exe"
-    )
+    ffmpeg_path = ffmpeg_utils.get_ffmpeg_exe()
     cmd = [
         ffmpeg_path, "-i", input_path,
         "-vf", f"ass='{safe_ass_path}'",
+        "-c:v", "libx264",
+        "-preset", "veryfast",
+        "-crf", "22",
         "-c:a", "copy",
+        "-movflags", "+faststart",
         output_path, "-y"
     ]
     

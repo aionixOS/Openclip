@@ -275,7 +275,7 @@ def _build_chunk_prompt(chunk: list[dict], chunk_index: int, total_chunks: int) 
     chunk_start = chunk[0]["start"] if chunk else 0
     chunk_end = chunk[-1]["end"] if chunk else 0
 
-    return f"""You are a viral video editor.
+    return f"""You are an expert viral video editor and content creator for social media platforms (YouTube Shorts, TikTok, Instagram Reels) targeting Indonesian audiences.
 This is part {chunk_index+1} of {total_chunks} of a YouTube video transcript.
 This section covers timestamps from {chunk_start:.0f}s to {chunk_end:.0f}s.
 
@@ -285,12 +285,15 @@ Rules:
 - Each clip MUST be between 60 and 80 seconds long. This is STRICT — no shorter, no longer.
 - Clips MUST stay within this section's bounds: {chunk_start:.0f}s to {chunk_end:.0f}s
 - Must start and end at natural speech boundaries
-- Only pick genuinely strong moments
+- Only pick genuinely strong, engaging, high-retention moments
 - You MUST return at least 2-3 clips for this section so we have enough options
 - Make sure "start" and "end" are float numbers of seconds
-- Generate a catchy, clickbait-style title for each clip (max 8 words)
-- Generate 3-5 relevant hashtags for social media (e.g. #motivation #viral)
-- Generate 3-5 SEO tags/keywords (single words or short phrases)
+
+ATURAN BAHASA INDONESIA (SANGAT PENTING & WAJIB):
+- "title": Wajib dalam BAHASA INDONESIA. Buat judul/hook yang sangat memikat, clickbait cerdas, dan memicu rasa penasaran tinggi (maksimal 6-8 kata). Gunakan gaya bahasa viral Shorts/TikTok Indonesia (contoh: "Gak Nyangka Rahasia Ini Baru Kebongkar!", "Momen Bikin Merinding Semua Orang", "Cara Licik Otak Bikin Kita Malas").
+- "reason": Wajib dalam BAHASA INDONESIA (1-2 kalimat ringkas). Tulis alasan/ringkasan menarik mengapa momen ini sangat layak ditonton dan memancing interaksi penonton.
+- "hashtags": Generate 3-5 hashtag relevan dalam Bahasa Indonesia & universal (contoh: ["#shorts", "#fyp", "#faktamenarik", "#podcastindonesia", "#viral"]).
+- "tags": Generate 3-5 kata kunci SEO dalam Bahasa Indonesia.
 
 TRANSCRIPT SECTION:
 {_format_transcript(chunk)}
@@ -300,8 +303,8 @@ Return ONLY JSON array:
   {{
     "start": <float seconds>,
     "end": <float seconds>,
-    "title": "<catchy clickbait title, max 8 words>",
-    "reason": "<one sentence>",
+    "title": "<judul viral Bahasa Indonesia, max 8 kata>",
+    "reason": "<alasan/ringkasan menarik Bahasa Indonesia, 1-2 kalimat>",
     "viral_score": <1-10>,
     "hashtags": ["#tag1", "#tag2", "#tag3"],
     "tags": ["keyword1", "keyword2", "keyword3"]
@@ -311,7 +314,7 @@ If no strong moments found return: []"""
 
 
 def _build_reduce_prompt(candidates: list[dict]) -> str:
-    return f"""You are a viral video editor.
+    return f"""You are an expert viral video editor for Indonesian audiences (TikTok, YouTube Shorts, Instagram Reels).
 Below are candidate clip moments found across a YouTube video.
 Select the best clips for maximum viral potential.
 
@@ -325,15 +328,16 @@ Rules:
 - Sort by start time ascending
 - "start" and "end" must be float numbers of seconds
 - Adjust start/end timestamps if needed to ensure each clip is 60-80 seconds
-- Keep the existing title, reason, viral_score, hashtags, and tags from candidates
+- BAHASA INDONESIA: Pastikan "title" dan "reason" menggunakan Bahasa Indonesia yang memikat, menarik, dan siap posting!
+- Keep or refine the existing title, reason, viral_score, hashtags, and tags in Bahasa Indonesia.
 
 Return ONLY the selected candidates as JSON array in the exact same format. Do not remove any fields.
 [
   {{
     "start": <float seconds>,
     "end": <float seconds>,
-    "title": "<catchy clickbait title, max 8 words>",
-    "reason": "<one sentence>",
+    "title": "<judul/hook viral Bahasa Indonesia, max 8 kata>",
+    "reason": "<alasan/ringkasan menarik Bahasa Indonesia, 1-2 kalimat>",
     "viral_score": <1-10>,
     "hashtags": ["#tag1", "#tag2", "#tag3"],
     "tags": ["keyword1", "keyword2", "keyword3"]
@@ -458,9 +462,8 @@ async def _call_anthropic(prompt: str, api_key: str, model: str) -> str:
 
 
 async def _call_gemini(prompt: str, api_key: str, model: str) -> str:
-    # Use the user's specified model, or fall back to gemini-2.0-flash
-    model = model or "gemini-2.0-flash"
-    logger.info(f"Calling Gemini with model: {model}")
+    target_model = model or "gemini-3.5-flash-lite"
+    logger.info(f"Calling Gemini with model: {target_model}")
 
     def _do_call() -> str:
         try:
@@ -478,6 +481,8 @@ async def _call_gemini(prompt: str, api_key: str, model: str) -> str:
         if not effective_api_key:
             raise RuntimeError("Gemini API key missing. Set it in Settings or GEMINI_API_KEY env var.")
 
+        req_model = target_model
+
         # Create client with explicit timeout via http_options
         client = genai.Client(
             api_key=effective_api_key,
@@ -491,10 +496,10 @@ async def _call_gemini(prompt: str, api_key: str, model: str) -> str:
         )
 
         try:
-            logger.info(f"Sending prompt to Gemini ({len(prompt)} chars)...")
+            logger.info(f"Sending prompt to Gemini ({len(prompt)} chars, model={req_model})...")
             # Use non-streaming for simpler, more reliable responses
             response = client.models.generate_content(
-                model=model,
+                model=req_model,
                 contents=prompt,
                 config=generate_content_config,
             )
@@ -503,12 +508,25 @@ async def _call_gemini(prompt: str, api_key: str, model: str) -> str:
             return result
         except Exception as e:
             error_str = str(e).lower()
-            logger.error(f"Gemini API error: {e}")
-            # Handle Gemini rate limit errors
-            if "429" in error_str or "resource_exhausted" in error_str or "quota" in error_str:
-                logger.warning(f"Gemini rate limit detected: {e}")
+            logger.error(f"Gemini API error with {req_model}: {e}")
+            fallback_models = [m for m in ["gemini-3.5-flash-lite", "gemini-3-flash-preview", "gemini-3.5-flash"] if m != req_model]
+            if any(k in error_str for k in ["503", "404", "unavailable", "429", "resource_exhausted", "quota"]):
+                for alt_model in fallback_models:
+                    logger.info(f"Retrying with fallback model: {alt_model}...")
+                    try:
+                        response = client.models.generate_content(
+                            model=alt_model,
+                            contents=prompt,
+                            config=generate_content_config,
+                        )
+                        result = response.text or "[]"
+                        logger.info(f"Gemini fallback ({alt_model}) response received ({len(result)} chars)")
+                        return result
+                    except Exception as e2:
+                        logger.error(f"Fallback {alt_model} failed: {e2}")
+            if "429" in error_str or "resource_exhausted" in error_str or "quota" in error_str or "503" in error_str:
+                logger.warning(f"Gemini rate limit or temporary error: {e}")
                 raise RuntimeError(f"Rate limit: {e}")
-            # Handle timeout errors
             if "timeout" in error_str or "deadline" in error_str:
                 logger.warning(f"Gemini timeout detected: {e}")
                 raise RuntimeError(f"Timeout: {e}")

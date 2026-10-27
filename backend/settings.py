@@ -149,8 +149,16 @@ async def get_all_settings() -> Dict[str, Any]:
             else:
                 result[k] = v
 
-        if "caption_style" not in result:
-            result["caption_style"] = "viral_word"
+        defaults = {
+            "llm_provider": "openai",
+            "llm_model": "gpt-4o",
+            "whisper_model": "base",
+            "caption_style": "viral_word",
+            "has_api_key": False,
+        }
+        for k, v in defaults.items():
+            if k not in result or result[k] is None:
+                result[k] = v
 
     except Exception as exc:
         raise RuntimeError(f"Failed to read settings: {exc}") from exc

@@ -29,11 +29,11 @@ export default function SettingsPage() {
     useEffect(() => {
         Promise.all([getSettings(), getCaptionStyles()])
             .then(([data, styles]) => {
-                setProvider(data.llm_provider);
-                setModel(data.llm_model);
-                setWhisperModel(data.whisper_model);
-                setCaptionStyle(data.caption_style || "none");
-                setHasApiKey(data.has_api_key);
+                if (data.llm_provider) setProvider(data.llm_provider);
+                if (data.llm_model) setModel(data.llm_model);
+                if (data.whisper_model) setWhisperModel(data.whisper_model);
+                if (data.caption_style) setCaptionStyle(data.caption_style);
+                setHasApiKey(Boolean(data.has_api_key));
                 setCaptionStylesList(styles);
             })
             .catch(() => setError("Failed to load settings."))
@@ -44,7 +44,7 @@ export default function SettingsPage() {
         setProvider(p);
         if (p === "openai") setModel("gpt-4o");
         if (p === "anthropic") setModel("claude-3-5-sonnet-20241022");
-        if (p === "gemini") setModel("gemini-1.5-pro");
+        if (p === "gemini") setModel("gemini-3.5-flash-lite");
         if (p === "ollama") setModel("llama3");
     };
 
@@ -129,7 +129,7 @@ export default function SettingsPage() {
                                                 <div className="space-y-2">
                                                     <input
                                                         type="password"
-                                                        value={apiKey}
+                                                        value={apiKey ?? ""}
                                                         onChange={e => setApiKey(e.target.value)}
                                                         placeholder={provider === "openai" ? "sk-••••••••••••••••" : provider === "anthropic" ? "sk-ant-••••••••" : "AIza••••••••"}
                                                         className="w-full bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:border-primary focus:outline-none transition-all text-sm"
@@ -149,7 +149,7 @@ export default function SettingsPage() {
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Model Name</label>
                                         <input
-                                            value={model}
+                                            value={model ?? ""}
                                             onChange={e => setModel(e.target.value)}
                                             className="w-full bg-slate-900/50 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 focus:border-primary focus:outline-none transition-all text-sm"
                                             placeholder="gpt-4o-mini"

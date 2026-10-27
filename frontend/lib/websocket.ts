@@ -17,19 +17,20 @@ export function useProjectProgress(projectId: string | null): ProgressState {
     const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
-        if (!projectId) {
+        const resetState = () => {
             setStage("Initializing...");
             setPercent(0);
             setMessage("");
             setLogs([]);
             setConnected(false);
-            return;
+        };
+
+        if (!projectId) {
+            const timer = setTimeout(resetState, 0);
+            return () => clearTimeout(timer);
         }
 
-        setStage("Initializing...");
-        setPercent(0);
-        setMessage("");
-        setLogs([]);
+        const resetTimer = setTimeout(resetState, 0);
 
         let isMounted = true;
         const host = window.location.hostname;
@@ -98,6 +99,7 @@ export function useProjectProgress(projectId: string | null): ProgressState {
         connect();
 
         return () => {
+            clearTimeout(resetTimer);
             isMounted = false;
             if (reconnectTimeoutRef.current) {
                 clearTimeout(reconnectTimeoutRef.current);

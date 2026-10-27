@@ -34,6 +34,7 @@ DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "..", "da
 
 async def _get_connection() -> aiosqlite.Connection:
     """Return an async SQLite connection with row-factory enabled."""
+    os.makedirs(os.path.dirname(os.path.abspath(DB_PATH)), exist_ok=True)
     conn = await aiosqlite.connect(DB_PATH)
     conn.row_factory = aiosqlite.Row
     await conn.execute("PRAGMA journal_mode=WAL;")
@@ -97,7 +98,7 @@ async def init_db() -> None:
         await conn.commit()
 
         # --- Migrations: add columns if they don't exist yet -----------
-        for col in ("title", "reason", "viral_score", "face_count", "layout_mode", "caption_style", "needs_user_confirm", "hashtags", "tags"):
+        for col in ("title", "description", "reason", "viral_score", "face_count", "layout_mode", "caption_style", "needs_user_confirm", "hashtags", "tags"):
             try:
                 col_type = "BOOLEAN" if col == "needs_user_confirm" else ("INTEGER" if col in ["viral_score", "face_count"] else "TEXT")
                 await conn.execute(
@@ -262,8 +263,26 @@ async def get_project(project_id: str) -> Optional[dict]:
             (project_id,),
         )
         clip_rows = await cursor.fetchall()
-        project["clips"] = [
-            {
+        proj_title = project.get("title") or "Original Video"
+        proj_url = project.get("youtube_url") or ""
+
+        clips_list = []
+        for c in clip_rows:
+            ht = json.loads(c["hashtags"]) if "hashtags" in c.keys() and c["hashtags"] else []
+            tags = json.loads(c["tags"]) if "tags" in c.keys() and c["tags"] else []
+            ht_clean = [h if h.startswith("#") else f"#{h}" for h in ht] if ht else ["#shorts", "#reels", "#fyp", "#viral"]
+            ht_str = " ".join(ht_clean)
+            
+            stored_desc = c["description"] if "description" in c.keys() and c["description"] else None
+            if not stored_desc:
+                hook = c["title"] or "Tonton klip menarik ini!"
+                reason = c["reason"] or ""
+                credit = f"🎥 Credit Video: {proj_title}\n🔗 Source: {proj_url}"
+                full_desc = f"{hook}\n\n{reason}\n\n---\n{credit}\n\n{ht_str}".strip()
+            else:
+                full_desc = stored_desc
+
+            clips_list.append({
                 "id": c["id"],
                 "project_id": c["project_id"],
                 "file_path": c["file_path"],
@@ -273,18 +292,18 @@ async def get_project(project_id: str) -> Optional[dict]:
                 "reframed": bool(c["reframed"]),
                 "captioned": bool(c["captioned"]),
                 "title": c["title"],
+                "description": full_desc,
                 "reason": c["reason"],
                 "viral_score": c["viral_score"],
                 "face_count": c["face_count"],
                 "layout_mode": c["layout_mode"] if "layout_mode" in c.keys() else "none",
                 "caption_style": c["caption_style"] if "caption_style" in c.keys() else "none",
                 "needs_user_confirm": bool(c["needs_user_confirm"]) if "needs_user_confirm" in c.keys() else False,
-                "hashtags": json.loads(c["hashtags"]) if "hashtags" in c.keys() and c["hashtags"] else [],
-                "tags": json.loads(c["tags"]) if "tags" in c.keys() and c["tags"] else [],
+                "hashtags": ht_clean,
+                "tags": tags,
                 "created_at": c["created_at"],
-            }
-            for c in clip_rows
-        ]
+            })
+        project["clips"] = clips_list
 
         return project
     except Exception as exc:
@@ -299,6 +318,7 @@ async def save_clip(
     start_time: float,
     end_time: float,
     title: Optional[str] = None,
+    description: Optional[str] = None,
     reason: Optional[str] = None,
     viral_score: Optional[int] = None,
     face_count: Optional[int] = None,
@@ -336,9 +356,9 @@ async def save_clip(
     try:
         await conn.execute(
             """INSERT INTO clips
-               (id, project_id, file_path, start_time, end_time, duration, title, reason, viral_score, face_count, layout_mode, caption_style, needs_user_confirm, reframed, hashtags, tags)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (clip_id, project_id, file_path, start_time, end_time, duration, title, reason, viral_score, face_count, layout_mode, caption_style, int(needs_user_confirm), int(reframed), hashtags_json, tags_json),
+               (id, project_id, file_path, start_time, end_time, duration, title, description, reason, viral_score, face_count, layout_mode, caption_style, needs_user_confirm, reframed, hashtags, tags)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (clip_id, project_id, file_path, start_time, end_time, duration, title, description, reason, viral_score, face_count, layout_mode, caption_style, int(needs_user_confirm), int(reframed), hashtags_json, tags_json),
         )
         await conn.commit()
         ret = {
@@ -351,6 +371,7 @@ async def save_clip(
             "reframed": reframed,
             "captioned": False,
             "title": title,
+            "description": description,
             "reason": reason,
             "viral_score": viral_score,
             "face_count": face_count,

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getProjects, deleteProject, createProject, getApiBaseUrl } from "@/lib/api";
+import { getProjects, deleteProject, createProject } from "@/lib/api";
 import { Project } from "@/lib/types";
 
 function getYouTubeThumbnail(url: string): string | null {
@@ -44,7 +44,7 @@ function StatusBadge({ status }: { status: Project["status"] }) {
     );
 }
 
-export default function Dashboard() {
+function DashboardContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const searchQuery = searchParams.get("q") || "";
@@ -122,7 +122,7 @@ export default function Dashboard() {
                 <div className="relative flex min-h-[360px] items-center p-8 lg:p-16">
                     {/* Text content */}
                     <div className="flex-1 max-w-xl">
-                        <span className="mb-4 inline-block rounded-full bg-primary/20 border border-primary/30 px-4 py-1 text-xs font-bold uppercase tracking-widest text-primary">
+                        <span className="mb-4 inline-block rounded-full bg-primary/30 border border-primary/50 px-4 py-1 text-xs font-bold uppercase tracking-widest text-white shadow-sm">
                             AI Powered Editing
                         </span>
                         <h1 className="mb-5 text-4xl font-bold leading-[1.1] tracking-tight text-white lg:text-5xl">
@@ -153,7 +153,7 @@ export default function Dashboard() {
                                 <button
                                     type="button"
                                     onClick={handlePaste}
-                                    className="rounded-lg bg-primary/30 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/50 transition-colors uppercase tracking-wider"
+                                    className="rounded-lg bg-primary hover:bg-primary/90 text-white px-3.5 py-1.5 text-xs font-bold transition-all uppercase tracking-wider shadow-sm"
                                 >
                                     Paste
                                 </button>
@@ -180,10 +180,10 @@ export default function Dashboard() {
                         <button
                             key={f}
                             onClick={() => setFilter(f)}
-                            className={`rounded-lg px-5 py-2 text-sm font-semibold transition-colors capitalize ${
+                            className={`rounded-lg px-5 py-2 text-sm transition-all capitalize ${
                                 filter === f
-                                    ? "bg-primary/20 text-primary"
-                                    : "text-slate-400 hover:text-white"
+                                    ? "bg-primary text-white shadow-md glow-primary font-bold"
+                                    : "text-slate-400 hover:text-white font-medium"
                             }`}
                         >
                             {f === "all" ? "All Projects" : f === "processing" ? "In Progress" : f.charAt(0).toUpperCase() + f.slice(1)}
@@ -295,5 +295,17 @@ export default function Dashboard() {
             )}
 
         </div>
+    );
+}
+
+export default function Dashboard() {
+    return (
+        <Suspense fallback={
+            <div className="flex h-screen items-center justify-center">
+                <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+            </div>
+        }>
+            <DashboardContent />
+        </Suspense>
     );
 }

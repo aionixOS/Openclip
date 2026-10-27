@@ -19,6 +19,7 @@ import subprocess
 import json
 import math
 import logging
+import ffmpeg_utils
 from typing import Callable, Optional
 
 logger = logging.getLogger(__name__)
@@ -44,9 +45,7 @@ def get_video_duration(file_path: str) -> float:
     Raises:
         RuntimeError: If ffprobe fails or cannot parse the duration.
     """
-    ffprobe_path = os.path.expandvars(
-        r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin\ffprobe.exe"
-    )
+    ffprobe_path = ffmpeg_utils.get_ffprobe_exe()
     cmd = [
         ffprobe_path,
         "-v", "quiet",
@@ -106,9 +105,7 @@ def cut_clip(
     duration = end - start
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-    ffmpeg_path = os.path.expandvars(
-        r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin\ffmpeg.exe"
-    )
+    ffmpeg_path = ffmpeg_utils.get_ffmpeg_exe()
     cmd = [
         ffmpeg_path,
         "-y",                  # overwrite without asking

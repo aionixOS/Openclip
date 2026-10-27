@@ -1,5 +1,6 @@
 import subprocess
 import os
+import ffmpeg_utils
 import numpy as np
 from PIL import Image
 
@@ -102,9 +103,7 @@ def _detect_audio_energy(
   vid_width: int,
   vid_height: int
 ) -> list[tuple[int, float]]:
-  ffmpeg_path = os.path.expandvars(
-      r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin\ffmpeg.exe"
-  )
+  ffmpeg_path = ffmpeg_utils.get_ffmpeg_exe()
   cmd = [
     ffmpeg_path, "-i", video_path,
     "-af", (

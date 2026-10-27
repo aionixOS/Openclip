@@ -24,6 +24,7 @@ export interface Clip {
     reframed: boolean
     captioned: boolean
     title?: string
+    description?: string
     reason?: string
     viral_score?: number
     face_count?: number

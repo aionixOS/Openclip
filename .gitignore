@@ -57,3 +57,7 @@ attached_assets/
 err.json
 err2.json
 error_trace.txt
+
+backend/bin/
+*.exe
+nul.mp4

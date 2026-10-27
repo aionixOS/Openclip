@@ -22,6 +22,7 @@ import json
 import glob
 import logging
 import time
+import ffmpeg_utils
 from typing import Callable, Optional
 
 logger = logging.getLogger(__name__)
@@ -85,9 +86,7 @@ def download_video(
     output_template = os.path.join(output_dir, "%(title)s.%(ext)s")
 
     # Path to ffmpeg (winget install location)
-    ffmpeg_dir = os.path.expandvars(
-        r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin"
-    )
+    ffmpeg_dir = ffmpeg_utils.get_ffmpeg_dir()
 
     cmd = [
         _resolve_ytdlp_exe(),
@@ -259,9 +258,7 @@ def _get_duration(file_path: str) -> float:
     Raises:
         RuntimeError: If ffprobe fails.
     """
-    ffprobe_path = os.path.expandvars(
-        r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin\ffprobe.exe"
-    )
+    ffprobe_path = ffmpeg_utils.get_ffprobe_exe()
     cmd = [
         ffprobe_path,
         "-v", "quiet",

@@ -39,9 +39,9 @@ export default function CreateProjectPage() {
     useEffect(() => {
         getSettings()
             .then(s => {
-                setHasApiKey(s.has_api_key);
-                setProvider(s.llm_provider);
-                setModel(s.llm_model);
+                setHasApiKey(Boolean(s.has_api_key));
+                if (s.llm_provider) setProvider(s.llm_provider);
+                if (s.llm_model) setModel(s.llm_model);
             })
             .catch(console.error);
     }, []);
@@ -56,7 +56,8 @@ export default function CreateProjectPage() {
                 .then(data => { setGeneratedClips(data.clips || []); setIsProcessing(false); })
                 .catch(() => { setApiError("Failed to load clips."); setIsProcessing(false); });
         } else if (stage === "error") {
-            setIsProcessing(false);
+            const timer = setTimeout(() => setIsProcessing(false), 0);
+            return () => clearTimeout(timer);
         }
     }, [stage, projectId]);
 
@@ -106,7 +107,7 @@ export default function CreateProjectPage() {
             {/* Header */}
             {!isLive && generatedClips.length === 0 && (
                 <div className="mb-10 text-center">
-                    <span className="mb-4 inline-block rounded-full bg-primary/20 border border-primary/30 px-4 py-1 text-xs font-bold uppercase tracking-widest text-primary">
+                    <span className="mb-4 inline-block rounded-full bg-primary/30 border border-primary/50 px-4 py-1 text-xs font-bold uppercase tracking-widest text-white shadow-sm">
                         New Project
                     </span>
                     <h1 className="text-4xl font-bold text-white mb-3">
@@ -137,7 +138,7 @@ export default function CreateProjectPage() {
                             <button
                                 type="button"
                                 onClick={handlePaste}
-                                className="rounded-lg bg-primary/20 px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/30 transition-colors uppercase tracking-wider"
+                                className="rounded-lg bg-primary hover:bg-primary/90 text-white px-3.5 py-1.5 text-xs font-bold transition-all uppercase tracking-wider shadow-sm"
                             >
                                 Paste
                             </button>
@@ -166,7 +167,7 @@ export default function CreateProjectPage() {
                         <div>
                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Model</label>
                             <input
-                                value={model}
+                                value={model ?? ""}
                                 onChange={e => setModel(e.target.value)}
                                 className="w-full rounded-xl bg-slate-900/50 border border-slate-800 px-3 py-2.5 text-sm text-slate-100 focus:border-primary focus:outline-none transition-all"
                                 placeholder="gpt-4o"
@@ -194,7 +195,7 @@ export default function CreateProjectPage() {
             {isLive && (
                 <div className="space-y-6">
                     <div className="text-center mb-8">
-                        <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/20 border border-primary/30 px-4 py-1 text-xs font-bold uppercase tracking-widest text-primary">
+                        <span className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary/30 border border-primary/50 px-4 py-1 text-xs font-bold uppercase tracking-widest text-white shadow-sm">
                             <span className="relative flex h-2 w-2">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
@@ -214,7 +215,7 @@ export default function CreateProjectPage() {
                                 <p className="text-slate-100 text-lg font-semibold">Overall Progress</p>
                                 <p className="text-slate-400 text-sm mt-1">{STAGE_LABELS[stage] || message || "Processing…"}</p>
                             </div>
-                            <p className="text-primary text-3xl font-bold">{Math.round(clampedPercent)}%</p>
+                            <p className="text-white text-3xl font-bold">{Math.round(clampedPercent)}%</p>
                         </div>
                         <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
                             <div

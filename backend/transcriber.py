@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import subprocess
+import re
 from typing import Callable, Optional
 from urllib.parse import parse_qs, urlparse
 
@@ -73,11 +74,19 @@ def _normalize_transcript_items(items: list[object]) -> list[dict]:
             start = float(getattr(item, "start", 0.0))
             duration = float(getattr(item, "duration", 0.0))
 
+        # Filter out bracketed noise e.g. [Tertawa], [Musik]
+        text = re.sub(r"\[.*?\]", "", text).strip()
         if not text:
             continue
 
         end = max(start + duration, start + 0.2)
         segments.append({"start": start, "end": end, "text": text})
+
+    # Sort and clamp consecutive segments to prevent overlapping captions
+    segments.sort(key=lambda s: s["start"])
+    for i in range(len(segments) - 1):
+        if segments[i]["end"] > segments[i + 1]["start"]:
+            segments[i]["end"] = max(segments[i]["start"] + 0.05, segments[i + 1]["start"])
 
     return segments
 
@@ -160,12 +169,15 @@ async def _get_transcript_api_captions(youtube_url: str, generated: bool) -> lis
             return []
 
         try:
-            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            if hasattr(YouTubeTranscriptApi, "list_transcripts"):
+                transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            else:
+                transcript_list = YouTubeTranscriptApi().list(video_id)
         except Exception as exc:
             logger.info("Transcript API list failed: %s", exc)
             return []
 
-        language_candidates = ["en", "en-US", "en-GB"]
+        language_candidates = ["id", "en", "en-US", "en-GB"]
 
         try:
             if generated:
@@ -212,7 +224,7 @@ async def _get_manual_captions(youtube_url: str) -> list[dict]:
         "--js-runtimes", "node",
         "--extractor-args", "youtube:player_client=web,default",
         "--sub-format", "json3",
-        "--sub-langs", "en.*,en",
+        "--sub-langs", "id.*,id,en.*,en,all",
         "--socket-timeout", "30",
         "-o", output_template,
         youtube_url,
@@ -263,7 +275,7 @@ async def _get_auto_captions(youtube_url: str) -> list[dict]:
         "--js-runtimes", "node",
         "--extractor-args", "youtube:player_client=web,default",
         "--sub-format", "json3",
-        "--sub-langs", "en.*,en",
+        "--sub-langs", "id.*,id,en.*,en,all",
         "--socket-timeout", "30",
         "-o", output_template,
         youtube_url,
@@ -390,7 +402,9 @@ async def _get_whisper_transcript(
             logger.error("openai-whisper is not installed — cannot transcribe")
             return []
             
-        model = whisper.load_model("base")
+        models_dir = os.path.join(os.path.dirname(__file__), "..", "data", "models")
+        os.makedirs(models_dir, exist_ok=True)
+        model = whisper.load_model("base", download_root=models_dir)
         result = model.transcribe(video_path)
 
         segments: list[dict] = []
