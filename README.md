@@ -173,6 +173,8 @@ This will start:
 
 OpenClip is open to contributors of all levels. If you find a bug, have a feature idea, or want to help build the roadmap — open an issue or a PR. All contributions are welcome.
 
+See **[CONTRIBUTING.md](CONTRIBUTING.md)** for setup, coding guidelines and the PR process.
+
 ---
 
 ## Frequently Asked Questions
