@@ -114,6 +114,16 @@ Then start the app:
 bash start.sh
 ```
 
+### Windows (PowerShell)
+
+`bash` isn't available in PowerShell or cmd, so use the PowerShell scripts instead:
+
+```powershell
+git clone https://github.com/aionixos/openclip.git; cd openclip
+powershell -ExecutionPolicy Bypass -File .\setup.ps1
+powershell -ExecutionPolicy Bypass -File .\start.ps1
+```
+
 This will start:
 - **Frontend:** http://localhost:3000
 - **Backend:** http://localhost:8000

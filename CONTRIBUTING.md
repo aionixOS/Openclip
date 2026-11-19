@@ -36,7 +36,12 @@ bash setup.sh   # checks dependencies, creates .env files, installs packages
 bash start.sh   # starts backend (port 8000) and frontend
 ```
 
-On Windows, run these from Git Bash or WSL.
+On Windows, use the PowerShell scripts instead (or run the `.sh` scripts from Git Bash / WSL):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\setup.ps1
+powershell -ExecutionPolicy Bypass -File .\start.ps1
+```
 
 The frontend dev server listens on the port printed by `npm run dev` (currently **5000**). API docs are at http://localhost:8000/docs.
 
