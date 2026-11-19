@@ -437,7 +437,7 @@ async def _call_openai(prompt: str, api_key: str, model: str) -> str:
 
 
 async def _call_anthropic(prompt: str, api_key: str, model: str) -> str:
-    model = model or "claude-3-5-sonnet-20241022"
+    model = model or "claude-sonnet-5-5"
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
         resp = await client.post(
             "https://api.anthropic.com/v1/messages",
@@ -458,8 +458,8 @@ async def _call_anthropic(prompt: str, api_key: str, model: str) -> str:
 
 
 async def _call_gemini(prompt: str, api_key: str, model: str) -> str:
-    # Use the user's specified model, or fall back to gemini-2.0-flash
-    model = model or "gemini-2.0-flash"
+    # Use the user's specified model, or fall back to gemini-3.5-flash
+    model = model or "gemini-3.5-flash"
     logger.info(f"Calling Gemini with model: {model}")
 
     def _do_call() -> str:
