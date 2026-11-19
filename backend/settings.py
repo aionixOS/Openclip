@@ -2,24 +2,24 @@
 settings.py — User settings management for OpenClip.
 
 Stores key-value configuration in the SQLite ``settings`` table.
-API keys are encrypted at rest using Fernet symmetric encryption
-with a key derived deterministically from the machine's UUID.
+API keys are encrypted at rest using Fernet symmetric encryption.
 
 How it works:
-    The machine's MAC-based node id (``uuid.getnode()``) is hashed with
-    SHA-256 and base64-encoded to produce a stable Fernet key.  This
-    means the encrypted data is tied to the physical machine — if the
-    database is moved to another device the API key will need to be
-    re-entered.
+    A random Fernet key is generated on first use and stored next to the
+    database as ``.secret_key`` (file mode 0600). Values written by older
+    versions, which derived the key from ``uuid.getnode()``, can still be
+    decrypted on machines where that value is stable. If the database is
+    moved without its ``.secret_key`` the API key must be re-entered.
 """
 
+import os
 import uuid
 import base64
 import hashlib
 import logging
 from typing import Optional, Any, Dict
 
-from cryptography.fernet import Fernet, InvalidToken # type: ignore
+from cryptography.fernet import Fernet, MultiFernet, InvalidToken # type: ignore
 
 import database # type: ignore
 
@@ -30,16 +30,45 @@ logger = logging.getLogger(__name__)
 # Encryption helpers
 # ---------------------------------------------------------------------------
 
-def _get_fernet() -> Fernet:
-    """
-    Derive a deterministic Fernet key from the machine's UUID.
+def _key_file_path() -> str:
+    """Secret key lives next to the SQLite database (e.g. data/.secret_key)."""
+    return os.path.join(os.path.dirname(os.path.abspath(database.DB_PATH)), ".secret_key")
 
-    Returns:
-        A ``Fernet`` instance ready to encrypt / decrypt.
+
+def _load_or_create_file_key() -> bytes:
     """
+    Load the persistent Fernet key, creating it (mode 0600) on first use.
+
+    ``uuid.getnode()`` is not reliable: when Python cannot read a hardware
+    address (common on macOS) it returns a *random* value per process, so a
+    key derived from it changes on every restart and saved API keys become
+    undecryptable. A random key stored on disk is stable.
+    """
+    path = _key_file_path()
+    try:
+        with open(path, "rb") as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        key = Fernet.generate_key()
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "wb") as f:
+            f.write(key)
+        return key
+
+
+def _legacy_machine_key() -> bytes:
+    """Old key derivation, kept only so previously saved values still decrypt."""
     machine_id = str(uuid.getnode()).encode()
-    key = base64.urlsafe_b64encode(hashlib.sha256(machine_id).digest())
-    return Fernet(key)
+    return base64.urlsafe_b64encode(hashlib.sha256(machine_id).digest())
+
+
+def _get_fernet() -> MultiFernet:
+    """
+    Return a Fernet that encrypts with the persistent file key and can
+    still decrypt values written with the legacy machine-derived key.
+    """
+    return MultiFernet([Fernet(_load_or_create_file_key()), Fernet(_legacy_machine_key())])
 
 
 def _encrypt(value: str) -> str:

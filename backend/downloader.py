@@ -16,6 +16,7 @@ How it works:
 """
 
 import os
+import ffbin  # type: ignore
 import subprocess
 import re
 import json
@@ -84,10 +85,8 @@ def download_video(
     # Output template — save as MP4 with sanitised title
     output_template = os.path.join(output_dir, "%(title)s.%(ext)s")
 
-    # Path to ffmpeg (winget install location)
-    ffmpeg_dir = os.path.expandvars(
-        r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin"
-    )
+    # Directory containing ffmpeg (PATH first, winget location on Windows)
+    ffmpeg_dir = ffbin.ffmpeg_dir()
 
     cmd = [
         _resolve_ytdlp_exe(),
@@ -259,9 +258,7 @@ def _get_duration(file_path: str) -> float:
     Raises:
         RuntimeError: If ffprobe fails.
     """
-    ffprobe_path = os.path.expandvars(
-        r"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin\ffprobe.exe"
-    )
+    ffprobe_path = ffbin.ffprobe()
     cmd = [
         ffprobe_path,
         "-v", "quiet",

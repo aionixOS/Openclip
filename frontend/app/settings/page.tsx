@@ -43,8 +43,8 @@ export default function SettingsPage() {
     const handleProviderChange = (p: Settings["llm_provider"]) => {
         setProvider(p);
         if (p === "openai") setModel("gpt-4o");
-        if (p === "anthropic") setModel("claude-3-5-sonnet-20241022");
-        if (p === "gemini") setModel("gemini-1.5-pro");
+        if (p === "anthropic") setModel("claude-sonnet-5-5");
+        if (p === "gemini") setModel("gemini-3.5-flash");
         if (p === "ollama") setModel("llama3");
     };
 
