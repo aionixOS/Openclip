@@ -57,3 +57,11 @@ attached_assets/
 err.json
 err2.json
 error_trace.txt
+
+# Bundled binaries (install FFmpeg yourself; see README)
+backend/bin/
+
+# Error dumps
+backend/ytdlp_error.txt
+frontend/*-error*.txt
+frontend/*-errors.txt
