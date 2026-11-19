@@ -35,7 +35,8 @@ $candidates = @(
 foreach ($c in $candidates) {
     if (-not (Get-Command $c.exe -ErrorAction SilentlyContinue)) { continue }
     try {
-        $ver = & $c.exe @($c.args + @('-c', 'import sys; print(f"{sys.version_info[0]}.{sys.version_info[1]}")')) 2>$null
+        # No double quotes in the code: Windows PowerShell 5.1 strips them from native args
+        $ver = & $c.exe @($c.args + @('-c', 'import sys; print(sys.version_info[0], sys.version_info[1], sep=chr(46))')) 2>$null
     } catch { $ver = $null }
     if ($LASTEXITCODE -eq 0 -and $ver -match '^(\d+)\.(\d+)$') {
         $python = $c.exe

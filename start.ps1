@@ -81,6 +81,27 @@ Write-Host ""
 Write-Host "Press Ctrl+C to stop both servers."
 Write-Host ""
 
+# uvicorn's --reload parent stays alive even if the app fails to start,
+# so check that the backend actually answers. The first start can be slow
+# while PyTorch / Whisper / MediaPipe load, so allow up to 3 minutes.
+Write-Host "Waiting for the backend to finish starting..."
+$ProgressPreference = 'SilentlyContinue'
+$backendUp = $false
+$deadline = (Get-Date).AddMinutes(3)
+while ((Get-Date) -lt $deadline -and -not $backend.HasExited) {
+    try {
+        Invoke-WebRequest 'http://127.0.0.1:8000/docs' -UseBasicParsing -TimeoutSec 3 | Out-Null
+        $backendUp = $true
+        break
+    } catch { Start-Sleep -Seconds 1 }
+}
+if ($backendUp) {
+    Write-Host "Backend is up." -ForegroundColor Green
+} else {
+    Write-Host "Warning: backend is not responding on port 8000. Check the errors above." -ForegroundColor Yellow
+}
+Write-Host ""
+
 # ------------------------------------------
 # Wait; stop both process trees on Ctrl+C or if either server exits
 # ------------------------------------------
@@ -88,8 +109,8 @@ try {
     while (-not $backend.HasExited -and -not $frontend.HasExited) {
         Start-Sleep -Seconds 1
     }
-    if ($backend.HasExited)  { Write-Host "Backend exited (code $($backend.ExitCode))." -ForegroundColor Red }
-    if ($frontend.HasExited) { Write-Host "Frontend exited (code $($frontend.ExitCode))." -ForegroundColor Red }
+    if ($backend.HasExited)  { Write-Host "Backend stopped." -ForegroundColor Red }
+    if ($frontend.HasExited) { Write-Host "Frontend stopped." -ForegroundColor Red }
 } finally {
     Write-Host ""
     Write-Host "Shutting down..."
