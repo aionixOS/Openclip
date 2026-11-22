@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getProjects, deleteProject, createProject, getApiBaseUrl } from "@/lib/api";
 import { Project } from "@/lib/types";
+import { SystemSetup } from "@/components/SystemSetup";
 
 function getYouTubeThumbnail(url: string): string | null {
     const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?/]+)/);
@@ -104,6 +105,9 @@ export default function Dashboard() {
 
     return (
         <div className="mx-auto w-full max-w-7xl px-6 lg:px-20 py-10">
+
+            {/* Missing FFmpeg / yt-dlp / packages: one-click installer */}
+            <SystemSetup className="mb-8" />
 
             {/* Hero Banner */}
             <section className="relative mb-16 overflow-hidden rounded-3xl">

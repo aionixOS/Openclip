@@ -62,3 +62,37 @@ export interface ClipSuggestion {
     title: string;
     reason: string;
 }
+
+export interface SystemTool {
+    id: 'ffmpeg' | 'yt_dlp' | 'python_packages';
+    name: string;
+    description: string;
+    ok: boolean;
+    can_install: boolean;
+    manual: string;
+    missing?: string[];
+}
+
+export interface InstallStep {
+    id: SystemTool['id'];
+    name: string;
+    state: 'pending' | 'running' | 'done' | 'error';
+    progress: number;
+    detail: string;
+}
+
+export interface InstallJob {
+    state: 'idle' | 'running' | 'done' | 'error';
+    percent: number;
+    message: string;
+    steps: InstallStep[];
+    error: string | null;
+    log: string[];
+}
+
+export interface SystemHealth {
+    ready: boolean;
+    platform: 'windows' | 'macos' | 'linux';
+    tools: SystemTool[];
+    install: InstallJob;
+}

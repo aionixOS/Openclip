@@ -65,7 +65,15 @@ elif [ -f ".venv/bin/activate" ]; then
     source .venv/bin/activate
 fi
 
-python -m uvicorn api:app --reload --port 8000 &
+# Don't auto-reload on changes inside .venv or bin: the in-app installer writes
+# there, and a reload mid-install would kill it. uvicorn only honours absolute
+# paths here (Windows-style under Git Bash, hence pwd -W) and crashes if one
+# doesn't exist, so make sure bin exists.
+mkdir -p bin
+BACKEND_ABS="$(pwd -W 2>/dev/null || pwd)"
+python -m uvicorn api:app --reload --port 8000 \
+    --reload-exclude "$BACKEND_ABS/.venv" \
+    --reload-exclude "$BACKEND_ABS/bin" &
 BACKEND_PID=$!
 
 cd ..

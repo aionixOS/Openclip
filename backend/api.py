@@ -36,6 +36,7 @@ from fastapi import (  # type: ignore
     WebSocket,
     WebSocketDisconnect,
     HTTPException,
+    Request,
     BackgroundTasks,
 )
 from fastapi.staticfiles import StaticFiles  # type: ignore
@@ -45,10 +46,14 @@ from dotenv import load_dotenv  # type: ignore
 
 load_dotenv()
 
-import os
-# Ensure ffmpeg is available to all subprocesses (Linux/Replit paths)
-_extra_paths = os.path.join(os.path.dirname(__file__), "bin")
-os.environ["PATH"] = _extra_paths + ":" + os.environ.get("PATH", "")
+import ffbin  # type: ignore
+
+# Make sure ffmpeg is on PATH for libraries that call it by name (e.g. Whisper):
+# the in-app installer's folder first, plus wherever ffbin found ffmpeg.
+_ffmpeg_dirs = [ffbin.LOCAL_FFMPEG_DIR]
+if ffbin.find_ffmpeg():
+    _ffmpeg_dirs.append(ffbin.ffmpeg_dir())
+os.environ["PATH"] = os.pathsep.join(_ffmpeg_dirs + [os.environ.get("PATH", "")])
 
 # Internal modules
 import database  # type: ignore
@@ -59,6 +64,7 @@ import llm  # type: ignore
 import reframer # type: ignore
 import captioner # type: ignore
 import settings as settings_mod  # type: ignore
+import system_setup  # type: ignore
 
 import logging
 
@@ -442,6 +448,43 @@ async def delete_project(project_id: str):
         shutil.rmtree(project_dir, ignore_errors=True)
 
     return {"success": True}
+
+
+# ---------------------------------------------------------------------------
+# REST routes — System requirements (FFmpeg, yt-dlp, Python packages)
+# ---------------------------------------------------------------------------
+
+_LOCAL_ORIGIN = re.compile(r"^https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$")
+
+
+@app.get("/api/health")
+async def health():
+    """Which system requirements are installed, plus any running install job."""
+    status = await asyncio.to_thread(system_setup.check_status)
+    return {**status, "install": system_setup.get_job()}
+
+
+@app.post("/api/system/install", status_code=202)
+async def install_requirements(request: Request):
+    """
+    Install every missing requirement in the background. Poll
+    ``GET /api/system/install`` for progress.
+
+    Only the local OpenClip UI may call this: the request must come from a
+    localhost origin and carry the ``X-OpenClip-Install`` header (a custom
+    header forces a CORS preflight, so other websites can't trigger it).
+    """
+    origin = request.headers.get("origin", "")
+    if not _LOCAL_ORIGIN.match(origin) or request.headers.get("x-openclip-install") != "1":
+        raise HTTPException(status_code=403, detail="Installs can only be started from the local OpenClip app")
+    started, job = system_setup.start_install()
+    return {"started": started, "install": job}
+
+
+@app.get("/api/system/install")
+async def install_progress():
+    """Progress of the current (or last) install job."""
+    return system_setup.get_job()
 
 
 @app.get("/api/caption-styles")

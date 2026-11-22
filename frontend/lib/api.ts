@@ -1,4 +1,4 @@
-import { Project, Clip, Settings, CaptionStyle } from './types';
+import { Project, Clip, Settings, CaptionStyle, SystemHealth, InstallJob } from './types';
 
 function getBaseUrl(): string {
     if (typeof window !== 'undefined') {
@@ -119,4 +119,37 @@ export async function getCaptionStyles(): Promise<CaptionStyle[]> {
             preview_colors: { text: "#FFFFFF", highlight: null, background: null }
         }
     ];
+}
+
+// ---------------------------------------------------------------------------
+// System requirements (FFmpeg, yt-dlp, Python packages)
+// ---------------------------------------------------------------------------
+
+/** Which requirements are installed. Returns null if the backend isn't reachable. */
+export async function getSystemHealth(): Promise<SystemHealth | null> {
+    try {
+        const res = await fetch(`${getBaseUrl()}/api/health`, { cache: 'no-store' });
+        if (!res.ok) return null;
+        return res.json();
+    } catch {
+        return null;
+    }
+}
+
+/** Start installing everything that's missing. */
+export async function startSystemInstall(): Promise<InstallJob> {
+    const res = await fetch(`${getBaseUrl()}/api/system/install`, {
+        method: 'POST',
+        // Custom header: the backend only accepts installs from the local app
+        headers: { 'X-OpenClip-Install': '1' },
+    });
+    if (!res.ok) throw new Error('Could not start the install');
+    const data = await res.json();
+    return data.install;
+}
+
+export async function getInstallProgress(): Promise<InstallJob> {
+    const res = await fetch(`${getBaseUrl()}/api/system/install`, { cache: 'no-store' });
+    if (!res.ok) throw new Error('Could not read install progress');
+    return res.json();
 }

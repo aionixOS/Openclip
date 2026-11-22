@@ -53,8 +53,15 @@ if ($devScript -match '-p\s+(\d+)') { $frontendPort = [int]$Matches[1] }
 # Start both servers
 # ------------------------------------------
 Write-Host "Starting backend server..."
+# Don't auto-reload on changes inside .venv or bin: the in-app installer writes
+# there, and a reload mid-install would kill it. uvicorn only honours absolute
+# paths here, and crashes if one doesn't exist, so make sure bin exists.
+$backendDir = Join-Path $PSScriptRoot 'backend'
+New-Item -ItemType Directory -Force -Path (Join-Path $backendDir 'bin') | Out-Null
 $backend = Start-Process -FilePath $venvPython `
-    -ArgumentList '-m', 'uvicorn', 'api:app', '--reload', '--port', '8000' `
+    -ArgumentList '-m', 'uvicorn', 'api:app', '--reload', '--port', '8000',
+        '--reload-exclude', "`"$(Join-Path $backendDir '.venv')`"",
+        '--reload-exclude', "`"$(Join-Path $backendDir 'bin')`"" `
     -WorkingDirectory (Join-Path $PSScriptRoot 'backend') `
     -NoNewWindow -PassThru
 

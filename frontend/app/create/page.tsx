@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createProject, getProject, getSettings, saveSettings, getApiBaseUrl } from "@/lib/api";
 import { Clip, Settings } from "@/lib/types";
 import { useProjectProgress } from "@/lib/websocket";
+import { SystemSetup } from "@/components/SystemSetup";
 
 const STAGE_LABELS: Record<string, string> = {
     downloading: "Downloading video…",
@@ -86,6 +87,9 @@ export default function CreateProjectPage() {
 
     return (
         <div className="mx-auto w-full max-w-3xl px-6 py-12">
+
+            {/* Missing FFmpeg / yt-dlp / packages: one-click installer */}
+            {!isLive && <SystemSetup className="mb-8" />}
 
             {/* No API key warning */}
             {hasApiKey === false && (

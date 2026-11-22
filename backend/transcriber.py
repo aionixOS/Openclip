@@ -16,21 +16,14 @@ import subprocess
 from typing import Callable, Optional
 from urllib.parse import parse_qs, urlparse
 
+import ffbin  # type: ignore
+
 logger = logging.getLogger(__name__)
 
 
 def _resolve_ytdlp_exe() -> str:
-    """Resolve yt-dlp from local virtualenv first, then PATH."""
-    backend_dir = os.path.dirname(__file__)
-    candidates = [
-        os.path.join(backend_dir, ".venv", "Scripts", "yt-dlp.exe"),
-        os.path.join(backend_dir, "..", ".venv", "Scripts", "yt-dlp.exe"),
-    ]
-    for candidate in candidates:
-        resolved = os.path.abspath(candidate)
-        if os.path.isfile(resolved):
-            return resolved
-    return "yt-dlp"
+    """Resolve yt-dlp from the running virtualenv first, then PATH."""
+    return ffbin.ytdlp()
 
 
 def _notify(
