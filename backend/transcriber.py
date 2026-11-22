@@ -4,7 +4,8 @@ Priority order:
 1) User-uploaded/manual YouTube captions
 2) Auto-generated YouTube captions
 3) yt-dlp subtitle extraction fallback
-4) Local Whisper fallback
+4) Gemini Transcribe Live (cloud speech-to-text, needs a Gemini key)
+5) Local Whisper fallback
 """
 
 import asyncio
@@ -17,6 +18,7 @@ from typing import Callable, Optional
 from urllib.parse import parse_qs, urlparse
 
 import ffbin  # type: ignore
+import gemini_transcriber  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +85,8 @@ async def extract_captions(
     youtube_url: str,
     video_path: str,
     progress_callback: Optional[Callable[[float, str], None]] = None,
+    gemini_api_key: str = "",
+    whisper_model: str = "base",
 ) -> list[dict]:
     """
     Extract a transcript for the given video.
@@ -129,9 +133,28 @@ async def extract_captions(
         _notify(progress_callback, 90, "Using yt-dlp auto captions")
         return result
 
-    _notify(progress_callback, 92, "No YouTube captions found. Running Whisper...")
+    # No captions on YouTube: transcribe the audio ourselves. Gemini
+    # Transcribe Live runs in the cloud (fast, nothing heavy to install);
+    # local Whisper is the fallback when there's no Gemini key or it fails.
+    gemini_api_key = gemini_api_key or os.environ.get("GEMINI_API_KEY", "")
+    if gemini_api_key:
+        _notify(progress_callback, 91, "No YouTube captions found. Transcribing with Gemini Live...")
+        try:
+            def live_progress(pct: float, msg: str) -> None:
+                _notify(progress_callback, 91 + pct * 0.09, msg)
+
+            segments = await gemini_transcriber.transcribe(video_path, gemini_api_key, live_progress)
+            if segments:
+                _notify(progress_callback, 100, "Gemini Live transcription complete")
+                return segments
+            logger.warning("Gemini Live returned no speech")
+        except Exception as exc:
+            logger.warning("Gemini Live transcription failed: %s", exc)
+            _notify(progress_callback, 92, f"Warning: Gemini Live failed ({exc}). Trying Whisper...")
+
+    _notify(progress_callback, 92, "Running Whisper speech-to-text...")
     logger.info("Falling back to Whisper transcription...")
-    segments = await _get_whisper_transcript(video_path)
+    segments = await _get_whisper_transcript(video_path, whisper_model)
     if segments:
         _notify(progress_callback, 100, "Whisper transcription complete")
     return segments
@@ -153,7 +176,13 @@ async def _get_transcript_api_captions(youtube_url: str, generated: bool) -> lis
             return []
 
         try:
-            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            if hasattr(YouTubeTranscriptApi, "list_transcripts"):
+                # youtube-transcript-api < 1.0 (class method)
+                transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            else:
+                # 1.x removed list_transcripts(); calling it raised and was
+                # swallowed, so this fast path silently never worked.
+                transcript_list = YouTubeTranscriptApi().list(video_id)
         except Exception as exc:
             logger.info("Transcript API list failed: %s", exc)
             return []
@@ -372,6 +401,7 @@ def _parse_json3(json_path: str) -> list[dict]:
 
 async def _get_whisper_transcript(
     video_path: str,
+    whisper_model: str = "base",
 ) -> list[dict]:
     """
     Transcribe a video locally using OpenAI's open-source Whisper model.
@@ -383,7 +413,7 @@ async def _get_whisper_transcript(
             logger.error("openai-whisper is not installed — cannot transcribe")
             return []
             
-        model = whisper.load_model("base")
+        model = whisper.load_model(whisper_model or "base")
         result = model.transcribe(video_path)
 
         segments: list[dict] = []

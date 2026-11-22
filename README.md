@@ -70,7 +70,8 @@ openclip/
 │   ├── reframer.py         ← 9:16 reframing via FFmpeg
 │   ├── layout_detector.py  ← Smart screen & face layout detector
 │   ├── speaker_detector.py ← Active speaker detection (Audio + Lips)
-│   ├── transcriber.py      ← Caption generation (VTT/Whisper)
+│   ├── transcriber.py      ← Transcript (YouTube captions → Gemini Live → Whisper)
+│   ├── gemini_transcriber.py ← Speech-to-text via Gemini Transcribe Live
 │   ├── llm.py              ← AI clip suggestions
 │   └── requirements.txt
 ├── frontend/
@@ -155,7 +156,7 @@ This will start:
 ## MVP Scope
 
 ✅ Paste YouTube URL → download via yt-dlp
-✅ Extract captions (Manual → Auto → Whisper)
+✅ Extract captions (Manual → Auto → Gemini Transcribe Live → Whisper)
 ✅ AI-driven viral hook detection (LLM)
 ✅ Smart layout detection (Tutorial, Podcast, Panel, Single, None)
 ✅ Active speaker tracking via FFmpeg audio RMS
@@ -213,6 +214,8 @@ Everything stays on your computer. Nothing goes to any cloud.
 The only external calls are:
   yt-dlp   → YouTube (to download)
   LLM API  → your chosen provider (transcript only)
+  Gemini   → the audio track, only for videos without YouTube captions
+             and only when a Gemini key is set (Gemini Transcribe Live)
 ```
 
 ---

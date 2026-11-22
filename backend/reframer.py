@@ -1,3 +1,4 @@
+import asyncio
 import subprocess
 import json
 import os
@@ -33,6 +34,15 @@ def _ensure_model_exists():
 
 _ensure_model_exists()
 base_options = python.BaseOptions(model_asset_path=model_path)
+
+
+def _run(cmd: list[str], timeout: float, text: bool = False) -> subprocess.CompletedProcess:
+  """Run FFmpeg/ffprobe with a time limit so a stuck process can't hang the pipeline."""
+  try:
+    return subprocess.run(cmd, capture_output=True, text=text, timeout=timeout)
+  except subprocess.TimeoutExpired as exc:
+    raise RuntimeError(f"{os.path.basename(cmd[0])} took longer than {timeout:.0f}s and was stopped") from exc
+
 options = vision.FaceDetectorOptions(base_options=base_options)
 face_detector = vision.FaceDetector.create_from_options(options)
 
@@ -56,28 +66,31 @@ async def process_clip(
     output_dir,
     f"raw_{project_id}_{suggestion['start']}.mp4"
   )
-  await _cut_raw_clip(
-    video_path, suggestion['start'],
-    suggestion['end'], raw_clip
-  )
-
-  width, height = _get_video_dimensions(raw_clip)
-  duration = suggestion['end'] - suggestion['start']
-  
-  frames = _extract_sample_frames(raw_clip)
-  face_data = _detect_faces_all_frames(frames, width, height)
-
   output_clip = os.path.join(
     output_dir,
     f"clip_{project_id}_{suggestion['start']}.mp4"
   )
+  duration = suggestion['end'] - suggestion['start']
 
-  success, face_count = await _reframe_dynamic_zoom(raw_clip, output_clip, width, height, face_data, duration)
-  if not success:
-    await _reframe_static_fallback(raw_clip, output_clip, width, height, face_data)
+  # FFmpeg and face detection block for seconds to minutes, so they run in a
+  # worker thread; otherwise the whole server (progress updates included)
+  # would freeze while a clip renders.
+  try:
+    await _cut_raw_clip(
+      video_path, suggestion['start'],
+      suggestion['end'], raw_clip
+    )
 
-  if os.path.exists(raw_clip):
-    os.remove(raw_clip)
+    width, height = await asyncio.to_thread(_get_video_dimensions, raw_clip)
+    frames = await asyncio.to_thread(_extract_sample_frames, raw_clip)
+    face_data = await asyncio.to_thread(_detect_faces_all_frames, frames, width, height)
+
+    success, face_count = await _reframe_dynamic_zoom(raw_clip, output_clip, width, height, face_data, duration)
+    if not success:
+      await _reframe_static_fallback(raw_clip, output_clip, width, height, face_data)
+  finally:
+    if os.path.exists(raw_clip):
+      os.remove(raw_clip)
 
   return {
     "file_path": output_clip,
@@ -100,13 +113,13 @@ def _extract_sample_frames(video_path: str) -> list[Image.Image]:
   No temp files — pipe directly to memory.
   """
   ffmpeg_path = ffbin.ffmpeg()
-  result = subprocess.run([
+  result = _run([
     ffmpeg_path, "-i", video_path,
     "-vf", "fps=1",
     "-f", "image2pipe",
     "-vcodec", "mjpeg",
     "pipe:1"
-  ], capture_output=True)
+  ], timeout=300)
 
   raw = result.stdout
   frames = []
@@ -154,17 +167,17 @@ def _detect_faces_all_frames(
         fw = bb.width
         fh = bb.height
         size = bb.height / vid_height
-        
+
         # Deduplication Rule: Remove size < 0.05
         if size < 0.05:
             continue
-            
+
         faces.append({
           "cx": cx, "cy": cy,
           "w": fw, "h": fh,
           "size": size
         })
-    
+
     # Deduplication Rule: Remove detections within 50px of another
     valid_faces = []
     for f in faces:
@@ -175,7 +188,7 @@ def _detect_faces_all_frames(
                 break
         if not is_dup:
             valid_faces.append(f)
-            
+
     all_faces.append(valid_faces)
   return all_faces
 
@@ -194,7 +207,7 @@ async def _reframe_dynamic_zoom(
 ) -> tuple[bool, int]:
     fps = 30
     total_frames = int(duration * fps)
-    
+
     # Majority vote for face count
     face_counts = [len(f) for f in face_data]
     overall_face_count = max(set(face_counts), key=face_counts.count) if face_counts else 0
@@ -212,7 +225,7 @@ async def _reframe_dynamic_zoom(
             elif size < 0.35: zoom_target = 1.7
             else: zoom_target = 1.3
             sec_targets.append({
-                "has_face": True, 
+                "has_face": True,
                 "zoom": zoom_target,
                 "cx": face['cx'],
                 "cy": face['cy']
@@ -224,7 +237,7 @@ async def _reframe_dynamic_zoom(
                 "cx": vid_width / 2.0,
                 "cy": vid_height / 2.0
             })
-    
+
     # Pad sec_targets to fill entire duration if frames were missed
     while len(sec_targets) < total_secs:
         sec_targets.append(sec_targets[-1] if sec_targets else {"has_face": False, "zoom": 1.0, "cx": vid_width / 2.0, "cy": vid_height / 2.0})
@@ -233,7 +246,7 @@ async def _reframe_dynamic_zoom(
     last_face_zoom = 1.0
     last_face_cx = vid_width / 2.0
     last_face_cy = vid_height / 2.0
-    
+
     frames_since_face_lost = 0
     ZOOM_OUT_HOLD = int(2 * fps)  # wait 2s after face loss before zoom-out starts
     ZOOM_OUT_DUR = int(1 * fps)   # complete zoom-out transition in ~1s
@@ -317,7 +330,7 @@ async def _reframe_dynamic_zoom(
 
         crop_h = float(vid_height) / current_zoom
         crop_w = crop_h * 9.0 / 16.0
-        
+
         # Ensure we don't request a width larger than the original video horizontally
         if crop_w > vid_width:
             crop_w = vid_width
@@ -328,7 +341,7 @@ async def _reframe_dynamic_zoom(
 
         crop_x = current_cx - crop_w / 2.0
         crop_y = current_cy - crop_h / 2.0
-        
+
         crop_x = max(0.0, min(crop_x, float(vid_width) - crop_w))
         crop_y = max(0.0, min(crop_y, float(vid_height) - crop_h))
 
@@ -347,7 +360,7 @@ async def _reframe_dynamic_zoom(
 
     with open(cmd_file, 'w') as f:
         f.write('\n'.join(lines))
-        
+
     filter_cmd_file = cmd_file.replace('\\', '/')
 
     # Step 7: Apply sendcmd with FFmpeg padding output logic to 1080x1920
@@ -366,16 +379,20 @@ async def _reframe_dynamic_zoom(
       "-c:a", "copy",
       output_path, "-y"
     ]
-    
-    result = subprocess.run(cmd, capture_output=True)
-    
-    if os.path.exists(cmd_file):
-        os.remove(cmd_file)
+
+    try:
+        result = await asyncio.to_thread(_run, cmd, 900)
+    except RuntimeError as exc:
+        logger.error(f"FFmpeg dynamic sendcmd reframe failed: {exc}")
+        return False, overall_face_count
+    finally:
+        if os.path.exists(cmd_file):
+            os.remove(cmd_file)
 
     if result.returncode != 0:
-        logger.error(f"FFmpeg dynamic sendcmd reframe failed: {result.stderr.decode()}")
+        logger.error(f"FFmpeg dynamic sendcmd reframe failed: {result.stderr.decode(errors='replace')[-1500:]}")
         return False, overall_face_count
-        
+
     return True, overall_face_count
 
 
@@ -390,15 +407,15 @@ async def _reframe_static_fallback(
   Fallback static crop in case dynamic sendcmd fails.
   """
   all_faces = [f for sec_data in face_data for f in sec_data]
-  
+
   if not all_faces:
       avg_cx = vid_width / 2.0
   else:
       avg_cx = sum(f['cx'] for f in all_faces) / len(all_faces)
-      
+
   crop_h = vid_height
   crop_w = crop_h * 9.0 / 16.0
-  
+
   if crop_w > vid_width:
       crop_w = vid_width
       crop_h = crop_w * 16.0 / 9.0
@@ -419,10 +436,10 @@ async def _reframe_static_fallback(
     "-vf", filter_cx,
     "-c:a", "copy", output_path, "-y"
   ]
-  result = subprocess.run(cmd, capture_output=True)
+  result = await asyncio.to_thread(_run, cmd, 900)
   if result.returncode != 0:
     raise RuntimeError(
-      f"FFmpeg static fallback reframe failed: {result.stderr.decode()}"
+      f"FFmpeg static fallback reframe failed: {result.stderr.decode(errors='replace')[-500:]}"
     )
 
 
@@ -432,11 +449,11 @@ def _get_video_dimensions(video_path: str) -> tuple[int, int]:
   """
   ffprobe_path = ffbin.ffprobe()
   cmd = [
-      ffprobe_path, 
-      "-v", "error", "-select_streams", "v:0", 
+      ffprobe_path,
+      "-v", "error", "-select_streams", "v:0",
       "-show_entries", "stream=width,height", "-of", "json", video_path
   ]
-  result = subprocess.run(cmd, capture_output=True, text=True)
+  result = _run(cmd, timeout=60, text=True)
   if result.returncode != 0:
       raise RuntimeError(f"FFprobe failed: {result.stderr}")
   data = json.loads(result.stdout)
@@ -458,6 +475,6 @@ async def _cut_raw_clip(
       ffmpeg_path, "-y", "-ss", str(start), "-i", video_path,
       "-t", str(duration), "-c", "copy", output_path
   ]
-  result = subprocess.run(cmd, capture_output=True, text=True)
+  result = await asyncio.to_thread(_run, cmd, 300, True)
   if result.returncode != 0:
-      raise RuntimeError(f"FFmpeg failed cutting raw clip: {result.stderr}")
+      raise RuntimeError(f"FFmpeg failed cutting raw clip: {result.stderr[-500:]}")

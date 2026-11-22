@@ -66,7 +66,8 @@ npm run dev
 |------|------------------|
 | `backend/api.py` | FastAPI routes, WebSocket, the processing pipeline |
 | `backend/downloader.py` | yt-dlp download |
-| `backend/transcriber.py` | Captions (YouTube VTT, then Whisper fallback) |
+| `backend/transcriber.py` | Transcript: YouTube captions, then Gemini Transcribe Live, then Whisper |
+| `backend/gemini_transcriber.py` | Speech-to-text by streaming the audio through Gemini Transcribe Live |
 | `backend/llm.py` | Clip suggestions from OpenAI / Anthropic / Gemini / Ollama |
 | `backend/clipper.py`, `reframer.py`, `captioner.py` | FFmpeg cutting, 9:16 reframing, caption burn-in |
 | `backend/layout_detector.py`, `speaker_detector.py`, `tracker.py` | Layout, face and active-speaker detection |

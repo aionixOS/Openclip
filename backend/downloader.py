@@ -257,7 +257,7 @@ def _get_duration(file_path: str) -> float:
         "-show_format",
         file_path,
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
     if result.returncode != 0:
         raise RuntimeError(f"ffprobe failed for {file_path}: {result.stderr}")
 

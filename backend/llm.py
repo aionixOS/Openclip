@@ -3,6 +3,7 @@ llm.py — Multi-provider LLM integration for clip suggestion (v4.0 Map-Reduce).
 """
 
 import json
+import os
 import re
 import logging
 import asyncio
@@ -10,14 +11,12 @@ import random
 from typing import Optional, Callable
 
 import httpx  # type: ignore
-from tenacity import retry, stop_after_attempt, wait_random_exponential, retry_if_exception_type
+from tenacity import retry, stop_after_attempt, retry_if_exception
 
 logger = logging.getLogger(__name__)
 
 _TIMEOUT = 120.0
 
-# Rate limit tracking - stores the last retry-after value
-_last_retry_after: float = 0.0
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -49,44 +48,79 @@ async def get_clip_suggestions(
         else:
             logger.info(f"Progress: [{stage}] {pct}% - {msg}")
 
+    caller = _ModelCaller(provider, api_key, model, progress)
+
     # Step 1 — Split into chunks of max 8 minutes each (larger chunks = fewer API calls)
     chunks = _chunk_transcript(transcript, chunk_minutes=8)
 
     logger.info(f"Split transcript into {len(chunks)} chunks for processing")
 
-    # Step 2 — Get candidates from each chunk (MAP)
+    # Step 2 — Get candidates from each chunk (MAP).
+    # A chunk that still fails after retries is skipped rather than failing
+    # the whole project; only if *every* chunk fails do we give up.
     all_candidates = []
+    failures: list[Exception] = []
     for i, chunk in enumerate(chunks):
         progress(
             "analyzing",
             55 + (i / len(chunks) * 15),
             f"Analyzing part {i+1} of {len(chunks)}..."
         )
-        candidates = await _analyze_chunk(chunk, i, len(chunks), provider, api_key, model)
-        all_candidates.extend(candidates)
+        try:
+            candidates = await _analyze_chunk(chunk, i, len(chunks), caller)
+            all_candidates.extend(candidates)
+        except Exception as exc:
+            if not is_retryable(exc):
+                # Bad key, unknown model, bad request: every other chunk
+                # would fail the same way, so stop now with the real reason.
+                raise
+            failures.append(exc)
+            logger.warning(f"Chunk {i+1}/{len(chunks)} failed after retries, skipping: {exc}")
+            progress("analyzing", 55 + ((i + 1) / len(chunks) * 15),
+                     f"Warning: part {i+1} of {len(chunks)} could not be analyzed ({friendly_error(exc)}), skipping it")
 
         # Add delay between chunks to avoid rate limits (skip delay on last chunk)
-        # Use 4-6 second delay with jitter to stay well under 50 RPM limit
         if i < len(chunks) - 1:
-            base_delay = 4.0
-            jitter = random.uniform(0, 2.0)  # Add 0-2s random jitter
-            delay_seconds = base_delay + jitter
-            logger.info(f"Rate limit protection: waiting {delay_seconds:.1f}s before next chunk...")
-            await asyncio.sleep(delay_seconds)
+            await asyncio.sleep(4.0 + random.uniform(0, 2.0))
+
+    if failures and len(failures) == len(chunks):
+        raise failures[-1]
 
     # Step 3 — If only 1 chunk, candidates are already final
-    if len(chunks) == 1:
+    if len(chunks) == 1 or not all_candidates:
         return _validate_suggestions(all_candidates, video_duration)
 
-    # Step 4 — Rank all candidates (REDUCE)
-    # Add delay before reduce step to avoid hitting rate limits
+    # Step 4 — Rank all candidates (REDUCE). If ranking fails or returns
+    # nothing usable, rank locally by viral score instead of failing.
     await asyncio.sleep(random.uniform(3.0, 5.0))
 
     progress("analyzing", 72, "Ranking best moments...")
-    final_clips = await _rank_candidates(all_candidates, video_duration, provider, api_key, model)
-    progress("analyzing", 75, f"Found {len(final_clips)} clips")
+    final_clips: list[dict] = []
+    try:
+        final_clips = _validate_suggestions(
+            await _rank_candidates(all_candidates, caller),
+            video_duration,
+        )
+    except Exception as exc:
+        logger.warning(f"Ranking step failed, ranking locally instead: {exc}")
+        progress("analyzing", 73, f"Warning: AI ranking failed ({friendly_error(exc)}), picking the top-scored moments instead")
 
-    return _validate_suggestions(final_clips, video_duration)
+    if not final_clips:
+        final_clips = _validate_suggestions(_rank_locally(all_candidates), video_duration)
+
+    progress("analyzing", 75, f"Found {len(final_clips)} clips")
+    return final_clips
+
+
+def _rank_locally(candidates: list[dict], limit: int = 10) -> list[dict]:
+    """Fallback ranking: highest viral score first, no overlaps, at most ``limit``."""
+    picked: list[dict] = []
+    for c in sorted(candidates, key=lambda c: c.get("viral_score", 0), reverse=True):
+        if all(c["end"] <= p["start"] or c["start"] >= p["end"] for p in picked):
+            picked.append(c)
+        if len(picked) >= limit:
+            break
+    return sorted(picked, key=lambda c: c["start"])
 
 
 def _chunk_transcript(
@@ -118,15 +152,13 @@ async def _analyze_chunk(
     chunk: list[dict],
     chunk_index: int,
     total_chunks: int,
-    provider: str,
-    api_key: str,
-    model: str
+    caller: "_ModelCaller",
 ) -> list[dict]:
     """
     Send ONE chunk to LLM. Stay under 1500 tokens.
     """
     prompt = _build_chunk_prompt(chunk, chunk_index, total_chunks)
-    raw = await _call_provider_with_retry(provider, api_key, model, prompt)
+    raw = await caller.call(prompt)
     logger.info(f"LLM raw response for chunk {chunk_index+1}: {raw[:500]}")
     parsed = _parse_llm_json(raw)
     logger.info(f"Parsed {len(parsed)} clips from chunk {chunk_index+1}")
@@ -135,17 +167,14 @@ async def _analyze_chunk(
 
 async def _rank_candidates(
     candidates: list[dict],
-    video_duration: float, # passed for consistency but might not be used here
-    provider: str,
-    api_key: str,
-    model: str
+    caller: "_ModelCaller",
 ) -> list[dict]:
     """
     Final reduce step. Send ALL candidates to LLM
     and ask it to pick the best 5-10.
     """
     prompt = _build_reduce_prompt(candidates)
-    raw = await _call_provider_with_retry(provider, api_key, model, prompt)
+    raw = await caller.call(prompt)
     return _parse_llm_json(raw)
 
 
@@ -344,27 +373,124 @@ Return ONLY the selected candidates as JSON array in the exact same format. Do n
 # Provider wrappers
 # ---------------------------------------------------------------------------
 
-class RateLimitError(Exception):
-    """Custom exception for rate limit errors with retry-after support."""
-    def __init__(self, message: str, retry_after: float = 0):
+class ProviderError(Exception):
+    """An LLM provider returned an error. ``status`` is the HTTP status code (0 if unknown)."""
+    def __init__(self, message: str, status: int = 0, retry_after: float = 0.0):
         super().__init__(message)
+        self.status = status
         self.retry_after = retry_after
 
 
-def _get_retry_wait():
-    """Custom wait strategy that respects retry-after header."""
-    # Use random exponential backoff: min=5s, max=120s
-    return wait_random_exponential(multiplier=2, min=5, max=120)
+# 408 timeout, 409 conflict, 429 rate limit, 5xx server trouble, 529 Anthropic "overloaded"
+_RETRYABLE_STATUS = {408, 409, 429, 500, 502, 503, 504, 529}
+
+
+def is_retryable(exc: BaseException) -> bool:
+    """Whether trying again could succeed. A wrong API key, unknown model or bad request never will."""
+    if isinstance(exc, ProviderError):
+        return exc.status in _RETRYABLE_STATUS
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code in _RETRYABLE_STATUS
+    # Network trouble: timeouts, dropped connections, DNS hiccups
+    return isinstance(exc, (httpx.TransportError, asyncio.TimeoutError, TimeoutError, ConnectionError))
+
+
+def friendly_error(exc: BaseException) -> str:
+    """Short, human explanation for the UI."""
+    status = getattr(exc, "status", 0)
+    if isinstance(exc, httpx.HTTPStatusError):
+        status = exc.response.status_code
+    if status in (401, 403):
+        return "the API key was rejected - check it in Settings"
+    if status == 404:
+        return "the model name was not found - check it in Settings"
+    if status == 400:
+        return f"the provider rejected the request: {exc}"
+    if status == 429:
+        return "rate limit or quota reached - wait a bit or check your plan"
+    if status in (500, 502, 503, 529):
+        return "the AI provider is having trouble right now"
+    if status in (408, 504) or isinstance(exc, (asyncio.TimeoutError, TimeoutError, httpx.TimeoutException)):
+        return "the AI provider took too long to answer"
+    if isinstance(exc, httpx.TransportError):
+        return "could not reach the AI provider - check your internet connection"
+    return str(exc)
+
+
+def _wait_before_retry(retry_state) -> float:
+    """Honour the provider's retry-after when it sends one, else back off exponentially (2s..60s) with jitter."""
+    exc = retry_state.outcome.exception() if retry_state.outcome else None
+    retry_after = getattr(exc, "retry_after", 0) or 0
+    if retry_after > 0:
+        return min(retry_after, 90) + random.uniform(0.5, 3)
+    backoff = min(60.0, 2.0 * (2 ** (retry_state.attempt_number - 1)))
+    return backoff + random.uniform(0, backoff / 2)
+
+
+def _log_retry(retry_state) -> None:
+    exc = retry_state.outcome.exception() if retry_state.outcome else None
+    logger.warning(
+        "LLM call failed (attempt %d): %s - retrying in %.1fs",
+        retry_state.attempt_number, exc, retry_state.next_action.sleep if retry_state.next_action else 0,
+    )
+
+
+# Model to switch to when the chosen one stays overloaded (503 "high demand",
+# 429, timeouts). Only used when it differs from the chosen model.
+_FALLBACK_MODELS = {
+    "gemini": "gemini-3.5-flash",
+}
+_ATTEMPTS_BEFORE_FALLBACK = 3
+
+
+class _ModelCaller:
+    """
+    Calls the chosen model for one project run. If it keeps failing with an
+    error that can pass (overloaded, rate limited, too slow), switches to the
+    provider's fallback model and stays on it for the rest of the run, so
+    later chunks don't wait through the same failures again.
+    """
+
+    def __init__(self, provider: str, api_key: str, model: str, progress: Callable[[str, float, str], None]):
+        self.provider = provider
+        self.api_key = api_key
+        self.model = model
+        self.fallback = _FALLBACK_MODELS.get(provider)
+        if not self.fallback or self.fallback == (model or self.fallback):
+            self.fallback = None
+        self.progress = progress
+
+    async def call(self, prompt: str) -> str:
+        if not self.fallback:
+            return await _call_provider_with_retry(self.provider, self.api_key, self.model, prompt)
+        try:
+            return await _call_provider_with_retry.retry_with(
+                stop=stop_after_attempt(_ATTEMPTS_BEFORE_FALLBACK)
+            )(self.provider, self.api_key, self.model, prompt)
+        except Exception as exc:
+            if not is_retryable(exc):
+                raise
+            logger.warning(f"{self.model} keeps failing ({exc}); switching to {self.fallback}")
+            self.progress("analyzing", 60, f"Warning: {self.model} is unavailable ({friendly_error(exc)}), switching to {self.fallback}")
+            self.model, self.fallback = self.fallback, None
+            return await _call_provider_with_retry(self.provider, self.api_key, self.model, prompt)
+
+
+def _retry_after_header(resp: httpx.Response) -> float:
+    try:
+        return float(resp.headers.get("retry-after", "") or 0)
+    except ValueError:
+        return 0.0
 
 
 @retry(
-    stop=stop_after_attempt(6),  # 6 attempts total
-    wait=_get_retry_wait(),
-    reraise=True
+    stop=stop_after_attempt(5),
+    wait=_wait_before_retry,
+    retry=retry_if_exception(is_retryable),
+    before_sleep=_log_retry,
+    reraise=True,
 )
 async def _call_provider_with_retry(provider: str, api_key: str, model: str, prompt: str) -> str:
-    global _last_retry_after
-
     dispatch = {
         "openai": _call_openai,
         "anthropic": _call_anthropic,
@@ -373,47 +499,17 @@ async def _call_provider_with_retry(provider: str, api_key: str, model: str, pro
     }
     handler = dispatch.get(provider)
     if handler is None:
-        raise ValueError(f"Unknown LLM provider: {provider}")
-
-    # If we recently hit a rate limit, wait the specified time before trying
-    if _last_retry_after > 0:
-        wait_time = _last_retry_after
-        _last_retry_after = 0  # Reset after using
-        logger.info(f"Respecting previous retry-after: waiting {wait_time}s...")
-        await asyncio.sleep(wait_time)
+        raise ProviderError(f"Unknown LLM provider: {provider}", status=400)
 
     try:
         return await handler(prompt, api_key, model)
     except httpx.HTTPStatusError as e:
-        if e.response.status_code == 429:
-            # Parse retry-after header if present
-            retry_after_str = e.response.headers.get("retry-after", "")
-            try:
-                retry_after = float(retry_after_str) if retry_after_str else 30.0
-            except ValueError:
-                retry_after = 30.0  # Default 30s if header is malformed
-
-            # Add jitter to prevent thundering herd
-            retry_after += random.uniform(1, 5)
-            _last_retry_after = retry_after
-
-            logger.warning(f"Rate limit hit (429). retry-after header: {retry_after_str}. Waiting {retry_after:.1f}s...")
-            await asyncio.sleep(retry_after)
-        raise
-    except RuntimeError as e:
-        # Handle Gemini rate limit and timeout errors (raised as RuntimeError)
-        error_str = str(e).lower()
-        if "rate limit" in error_str or "quota" in error_str:
-            retry_after = 30.0 + random.uniform(5, 15)  # 35-45 seconds
-            _last_retry_after = retry_after
-            logger.warning(f"Gemini rate limit detected. Waiting {retry_after:.1f}s...")
-            await asyncio.sleep(retry_after)
-        elif "timeout" in error_str:
-            # For timeouts, wait a bit less but still retry
-            retry_after = 10.0 + random.uniform(2, 5)
-            logger.warning(f"Gemini timeout. Waiting {retry_after:.1f}s before retry...")
-            await asyncio.sleep(retry_after)
-        raise
+        body = e.response.text[:300]
+        raise ProviderError(
+            f"{provider} returned HTTP {e.response.status_code}: {body}",
+            status=e.response.status_code,
+            retry_after=_retry_after_header(e.response),
+        ) from e
 
 
 async def _call_openai(prompt: str, api_key: str, model: str) -> str:
@@ -457,72 +553,59 @@ async def _call_anthropic(prompt: str, api_key: str, model: str) -> str:
         return data["content"][0]["text"]
 
 
+# How long Google may spend on one request. google-genai also sends this to
+# Google as the server-side deadline (X-Server-Timeout), so a short value
+# makes Google itself abort with 504 DEADLINE_EXCEEDED on long transcripts.
+# One 8-minute chunk normally answers in well under a minute with low
+# thinking; 2 minutes leaves room without making a stuck request cost 5.
+_GEMINI_DEADLINE_S = 120
+
+
 async def _call_gemini(prompt: str, api_key: str, model: str) -> str:
-    # Use the user's specified model, or fall back to gemini-3.5-flash
+    try:
+        from google import genai
+        from google.genai import types, errors as genai_errors
+    except ImportError as exc:
+        raise RuntimeError("Gemini SDK missing. Install with: pip install google-genai") from exc
+
     model = model or "gemini-3.5-flash"
-    logger.info(f"Calling Gemini with model: {model}")
+    api_key = api_key or os.environ.get("GEMINI_API_KEY", "")
+    if not api_key:
+        raise ProviderError("Gemini API key missing. Set it in Settings or the GEMINI_API_KEY env var.", status=401)
 
-    def _do_call() -> str:
-        try:
-            from google import genai
-            from google.genai import types
-        except ImportError as exc:
-            raise RuntimeError(
-                "Gemini SDK missing. Install with: pip install google-genai"
-            ) from exc
+    client = genai.Client(api_key=api_key, http_options={"timeout": _GEMINI_DEADLINE_S * 1000})
 
-        effective_api_key = api_key or ""
-        if not effective_api_key:
-            import os
-            effective_api_key = os.environ.get("GEMINI_API_KEY", "")
-        if not effective_api_key:
-            raise RuntimeError("Gemini API key missing. Set it in Settings or GEMINI_API_KEY env var.")
-
-        # Create client with explicit timeout via http_options
-        client = genai.Client(
-            api_key=effective_api_key,
-            http_options={"timeout": 90000}  # 90 second timeout in milliseconds
-        )
-
-        # Simplified config - no tools or thinking mode to reduce token usage
-        generate_content_config = types.GenerateContentConfig(
+    async def _generate(thinking) -> str:
+        config = types.GenerateContentConfig(
             temperature=0.3,
             response_mime_type="application/json",
+            thinking_config=thinking,
         )
+        response = await asyncio.wait_for(
+            client.aio.models.generate_content(model=model, contents=prompt, config=config),
+            timeout=_GEMINI_DEADLINE_S + 30,
+        )
+        return response.text or "[]"
 
-        try:
-            logger.info(f"Sending prompt to Gemini ({len(prompt)} chars)...")
-            # Use non-streaming for simpler, more reliable responses
-            response = client.models.generate_content(
-                model=model,
-                contents=prompt,
-                config=generate_content_config,
-            )
-            result = response.text or "[]"
-            logger.info(f"Gemini response received ({len(result)} chars)")
-            return result
-        except Exception as e:
-            error_str = str(e).lower()
-            logger.error(f"Gemini API error: {e}")
-            # Handle Gemini rate limit errors
-            if "429" in error_str or "resource_exhausted" in error_str or "quota" in error_str:
-                logger.warning(f"Gemini rate limit detected: {e}")
-                raise RuntimeError(f"Rate limit: {e}")
-            # Handle timeout errors
-            if "timeout" in error_str or "deadline" in error_str:
-                logger.warning(f"Gemini timeout detected: {e}")
-                raise RuntimeError(f"Timeout: {e}")
-            raise
-
-    # Use asyncio.wait_for with timeout to prevent hanging
+    logger.info(f"Calling Gemini with model: {model} ({len(prompt)} chars)")
     try:
-        return await asyncio.wait_for(
-            asyncio.to_thread(_do_call),
-            timeout=120.0  # 120 second overall timeout
-        )
-    except asyncio.TimeoutError:
-        logger.error("Gemini API call timed out after 120 seconds")
-        raise RuntimeError("Gemini API timeout - the model is taking too long to respond")
+        # Finding clip moments doesn't need deep reasoning, and low thinking
+        # keeps responses fast enough to stay well inside the deadline.
+        try:
+            result = await _generate(types.ThinkingConfig(thinking_level="low"))
+        except genai_errors.ClientError as e:
+            if e.code == 400 and "think" in str(e).lower():
+                # Older models (e.g. 2.x) don't accept thinking_level
+                result = await _generate(None)
+            else:
+                raise
+    except genai_errors.APIError as e:
+        raise ProviderError(f"Gemini API error: {e}", status=e.code or 0) from e
+    except asyncio.TimeoutError as e:
+        raise ProviderError(f"Gemini did not answer within {_GEMINI_DEADLINE_S}s", status=504) from e
+
+    logger.info(f"Gemini response received ({len(result)} chars)")
+    return result
 
 
 async def _call_ollama(prompt: str, api_key: str, model: str) -> str:

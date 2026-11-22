@@ -29,11 +29,11 @@ export default function SettingsPage() {
     useEffect(() => {
         Promise.all([getSettings(), getCaptionStyles()])
             .then(([data, styles]) => {
-                setProvider(data.llm_provider);
-                setModel(data.llm_model);
-                setWhisperModel(data.whisper_model);
+                setProvider(data.llm_provider ?? "openai");
+                setModel(data.llm_model ?? "");
+                setWhisperModel(data.whisper_model ?? "base");
                 setCaptionStyle(data.caption_style || "none");
-                setHasApiKey(data.has_api_key);
+                setHasApiKey(Boolean(data.has_api_key));
                 setCaptionStylesList(styles);
             })
             .catch(() => setError("Failed to load settings."))

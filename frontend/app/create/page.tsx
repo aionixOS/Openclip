@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createProject, getProject, getSettings, saveSettings, getApiBaseUrl } from "@/lib/api";
+import { createProject, getProject, getSettings, saveSettings, getApiBaseUrl, retryProject } from "@/lib/api";
 import { Clip, Settings } from "@/lib/types";
 import { useProjectProgress } from "@/lib/websocket";
 import { SystemSetup } from "@/components/SystemSetup";
@@ -33,16 +33,19 @@ export default function CreateProjectPage() {
     const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
     const [provider, setProvider] = useState<Settings["llm_provider"]>("openai");
     const [model, setModel] = useState("gpt-4o");
+    const [failure, setFailure] = useState<string | null>(null);
+    const [runKey, setRunKey] = useState(0);
+    const [retrying, setRetrying] = useState(false);
     const logsEndRef = useRef<HTMLDivElement>(null);
 
-    const { stage, percent, message, logs } = useProjectProgress(projectId);
+    const { stage, percent, message, logs } = useProjectProgress(projectId, runKey);
 
     useEffect(() => {
         getSettings()
             .then(s => {
-                setHasApiKey(s.has_api_key);
-                setProvider(s.llm_provider);
-                setModel(s.llm_model);
+                setHasApiKey(Boolean(s.has_api_key));
+                setProvider(s.llm_provider ?? "openai");
+                setModel(s.llm_model ?? "");
             })
             .catch(console.error);
     }, []);
@@ -58,8 +61,29 @@ export default function CreateProjectPage() {
                 .catch(() => { setApiError("Failed to load clips."); setIsProcessing(false); });
         } else if (stage === "error") {
             setIsProcessing(false);
+            setFailure(message || "Pipeline failed");
         }
-    }, [stage, projectId]);
+    }, [stage, projectId, message]);
+
+    const handleRetry = async () => {
+        if (!projectId || retrying) return;
+        setRetrying(true);
+        try {
+            await retryProject(projectId);
+            setFailure(null);
+            setIsProcessing(true);
+            setRunKey(k => k + 1);
+        } catch {
+            setFailure("Could not restart the project. Is the backend running?");
+        } finally {
+            setRetrying(false);
+        }
+    };
+
+    const handleStartOver = () => {
+        setFailure(null);
+        setProjectId(null);
+    };
 
     const handlePaste = async () => {
         try { setUrl(await navigator.clipboard.readText()); } catch { /* ignore */ }
@@ -71,6 +95,7 @@ export default function CreateProjectPage() {
         setIsProcessing(true);
         setGeneratedClips([]);
         setApiError(null);
+        setFailure(null);
         setProjectId(null);
         try {
             await saveSettings({ llm_provider: provider, llm_model: model });
@@ -108,7 +133,7 @@ export default function CreateProjectPage() {
             )}
 
             {/* Header */}
-            {!isLive && generatedClips.length === 0 && (
+            {!isLive && !failure && generatedClips.length === 0 && (
                 <div className="mb-10 text-center">
                     <span className="mb-4 inline-block rounded-full bg-primary/20 border border-primary/30 px-4 py-1 text-xs font-bold uppercase tracking-widest text-primary">
                         New Project
@@ -122,8 +147,41 @@ export default function CreateProjectPage() {
                 </div>
             )}
 
+            {/* Failed run: say why, and offer to resume */}
+            {!isLive && failure && projectId && (
+                <div className="mb-8 glass-card rounded-3xl p-6 border border-red-500/20">
+                    <div className="flex items-start gap-4">
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-red-500/10 text-red-400">
+                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="font-bold text-white">That run didn&apos;t finish</p>
+                            <p className="mt-1 text-sm text-slate-400 break-words">{failure}</p>
+                            <p className="mt-2 text-xs text-slate-500">Retry continues from the last finished step, so nothing already done is repeated.</p>
+                            <div className="mt-4 flex flex-wrap gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleRetry}
+                                    disabled={retrying}
+                                    className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white glow-primary hover:bg-primary/90 transition-all disabled:opacity-60"
+                                >
+                                    {retrying ? "Restarting…" : "Retry"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleStartOver}
+                                    className="rounded-xl glass glass-hover px-5 py-2.5 text-sm font-semibold text-slate-300 transition-all"
+                                >
+                                    Start over
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* URL Input Card */}
-            {!isLive && generatedClips.length === 0 && (
+            {!isLive && !failure && generatedClips.length === 0 && (
                 <form onSubmit={handleGenerate} className="glass-card rounded-3xl p-8 space-y-6">
                     {/* URL Field */}
                     <div>

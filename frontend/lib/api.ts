@@ -43,6 +43,12 @@ export const createProject = async (youtube_url: string): Promise<{ project_id: 
     return res.json();
 };
 
+/** Run a failed or interrupted project again; finished steps are reused. */
+export const retryProject = async (id: string): Promise<void> => {
+    const res = await fetch(`${getBaseUrl()}/api/projects/${id}/retry`, { method: 'POST' });
+    if (!res.ok && res.status !== 409) throw new Error("Failed to retry project");
+};
+
 export const deleteProject = async (id: string): Promise<void> => {
     const res = await fetch(`${getBaseUrl()}/api/projects/${id}`, {
         method: 'DELETE'

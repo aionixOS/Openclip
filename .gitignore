@@ -65,3 +65,6 @@ backend/bin/
 backend/ytdlp_error.txt
 frontend/*-error*.txt
 frontend/*-errors.txt
+
+# Private dev notes
+Devlog.md

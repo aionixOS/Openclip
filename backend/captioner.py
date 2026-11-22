@@ -436,7 +436,7 @@ async def _burn_ass_to_video(input_path: str, ass_path: str, output_path: str) -
     ]
     
     def _run_ffmpeg() -> tuple[int, str]:
-        res = subprocess.run(cmd, capture_output=True, text=True)
+        res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=900)
         return res.returncode, str(res.stderr)
         
     returncode, stderr_output = await asyncio.to_thread(_run_ffmpeg) # type: ignore

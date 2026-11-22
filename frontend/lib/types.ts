@@ -11,6 +11,8 @@ export interface Project {
         | 'done'
         | 'error';
     created_at: string;
+    /** Why the last run failed, or which clips were skipped. */
+    error_message?: string | null;
     clip_count?: number;
 }
 

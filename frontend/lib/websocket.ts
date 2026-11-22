@@ -6,7 +6,11 @@ export interface ProgressState extends ProgressUpdate {
     logs: string[];
 }
 
-export function useProjectProgress(projectId: string | null): ProgressState {
+/**
+ * Live progress for a project. Bump `runKey` to reset and reconnect,
+ * e.g. after retrying a failed project.
+ */
+export function useProjectProgress(projectId: string | null, runKey = 0): ProgressState {
     const [stage, setStage] = useState<string>("Initializing...");
     const [percent, setPercent] = useState<number>(0);
     const [message, setMessage] = useState<string>("");
@@ -106,7 +110,7 @@ export function useProjectProgress(projectId: string | null): ProgressState {
                 wsRef.current.close();
             }
         };
-    }, [projectId]);
+    }, [projectId, runKey]);
 
     return { stage, percent, message, connected, logs };
 }

@@ -26,6 +26,13 @@ import database # type: ignore
 
 logger = logging.getLogger(__name__)
 
+_DEFAULT_MODELS = {
+    "openai": "gpt-4o",
+    "anthropic": "claude-sonnet-5-5",
+    "gemini": "gemini-3.5-flash",
+    "ollama": "llama3",
+}
+
 # ---------------------------------------------------------------------------
 # Encryption helpers
 # ---------------------------------------------------------------------------
@@ -178,8 +185,14 @@ async def get_all_settings() -> Dict[str, Any]:
             else:
                 result[k] = v
 
-        if "caption_style" not in result:
-            result["caption_style"] = "viral_word"
+        # Fill in defaults for anything never saved, so the UI always gets
+        # every field (a missing llm_model made the Settings input flip from
+        # uncontrolled to controlled).
+        result.setdefault("llm_provider", "openai")
+        result.setdefault("llm_model", _DEFAULT_MODELS.get(result["llm_provider"], ""))
+        result.setdefault("whisper_model", "base")
+        result.setdefault("caption_style", "viral_word")
+        result.setdefault("has_api_key", False)
 
     except Exception as exc:
         raise RuntimeError(f"Failed to read settings: {exc}") from exc

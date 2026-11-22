@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { getProject, getApiBaseUrl } from "@/lib/api";
+import { getProject, getApiBaseUrl, retryProject } from "@/lib/api";
 import { Project, Clip } from "@/lib/types";
 
 function formatDuration(s: number) {
@@ -36,6 +36,7 @@ export default function ProjectPage() {
     const [selectedClip, setSelectedClip] = useState<Clip | null>(null);
     const [wsProgress, setWsProgress] = useState<{ stage: string; percent: number; message: string } | null>(null);
     const [logs, setLogs] = useState<string[]>([]);
+    const [retrying, setRetrying] = useState(false);
 
     useEffect(() => {
         getProject(id)
@@ -46,6 +47,21 @@ export default function ProjectPage() {
             .catch(err => setError(err instanceof Error ? err.message : "Not found"))
             .finally(() => setLoading(false));
     }, [id]);
+
+    const handleRetry = async () => {
+        if (!project || retrying) return;
+        setRetrying(true);
+        try {
+            await retryProject(id);
+            setWsProgress(null);
+            setLogs([]);
+            setProject({ ...project, status: "pending", error_message: null });
+        } catch {
+            setProject({ ...project, error_message: "Could not restart the project. Is the backend running?" });
+        } finally {
+            setRetrying(false);
+        }
+    };
 
     useEffect(() => {
         if (!project || ["done", "error"].includes(project.status)) return;
@@ -58,6 +74,10 @@ export default function ProjectPage() {
                 setWsProgress({ stage: d.stage, percent: d.percent, message: d.message });
                 setLogs(prev => [...prev.slice(-49), `[${new Date().toLocaleTimeString()}] ${d.message}`]);
                 if (d.stage === "done") { ws.close(); window.location.reload(); }
+                if (d.stage === "error") {
+                    ws.close();
+                    setProject(p => p && { ...p, status: "error", error_message: d.message });
+                }
             } catch { /* ignore */ }
         };
         return () => ws.close();
@@ -150,6 +170,34 @@ export default function ProjectPage() {
                     )}
                 </div>
 
+                {/* Failed run, or clips skipped: say why and offer to resume */}
+                {!isProcessing && (project.status === "error" || project.error_message) && (
+                    <div className={`glass-card rounded-2xl p-6 border ${project.status === "error" ? "border-red-500/20" : "border-amber-500/20"}`}>
+                        <div className="flex items-start gap-4">
+                            <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${project.status === "error" ? "bg-red-500/10 text-red-400" : "bg-amber-500/10 text-amber-400"}`}>
+                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <p className="font-bold text-white">
+                                    {project.status === "error" ? "This project didn’t finish" : "Some clips were skipped"}
+                                </p>
+                                <p className="mt-1 text-sm text-slate-400 break-words">
+                                    {project.error_message || "Something went wrong while processing this video."}
+                                </p>
+                                <p className="mt-2 text-xs text-slate-500">Retry continues from the last finished step, so nothing already done is repeated.</p>
+                                <button
+                                    type="button"
+                                    onClick={handleRetry}
+                                    disabled={retrying}
+                                    className="mt-4 rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white glow-primary hover:bg-primary/90 transition-all disabled:opacity-60"
+                                >
+                                    {retrying ? "Restarting…" : "Retry"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Live Progress (when processing) */}
                 {isProcessing && (
                     <div className="glass-card rounded-2xl p-6 space-y-4">
@@ -221,7 +269,7 @@ export default function ProjectPage() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4">
-                    {project.clips?.length === 0 && project.status === "done" ? (
+                    {project.clips?.length === 0 && (project.status === "done" || project.status === "error") ? (
                         <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-600">
                             <svg className="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/></svg>
                             <p className="text-sm">No clips generated</p>

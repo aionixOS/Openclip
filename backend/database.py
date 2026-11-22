@@ -107,6 +107,12 @@ async def init_db() -> None:
                 await conn.commit()
             except Exception:
                 pass  # column already exists — safe to ignore
+        # Why a project failed (or which clips were skipped), shown in the UI.
+        try:
+            await conn.execute("ALTER TABLE projects ADD COLUMN error_message TEXT")
+            await conn.commit()
+        except Exception:
+            pass
 
     except Exception as exc:
         raise RuntimeError(f"Failed to initialise database: {exc}") from exc
@@ -144,23 +150,51 @@ async def create_project(youtube_url: str) -> dict:
     return ret
 
 
-async def update_project_status(project_id: str, status: str) -> None:
+RUNNING_STATUSES = ("pending", "downloading", "transcribing", "analyzing", "processing")
+
+
+async def update_project_status(
+    project_id: str, status: str, error_message: Optional[str] = None
+) -> None:
     """
     Update the status field of a project.
 
     Args:
-        project_id: UUID of the project.
-        status:     New status value (pending/downloading/processing/done/error).
+        project_id:    UUID of the project.
+        status:        New status value (pending/downloading/processing/done/error).
+        error_message: Why it failed, or a warning such as skipped clips.
+                       Every status change overwrites it (None clears it).
     """
     conn = await _get_connection()
     try:
         await conn.execute(
-            "UPDATE projects SET status = ? WHERE id = ?",
-            (status, project_id),
+            "UPDATE projects SET status = ?, error_message = ? WHERE id = ?",
+            (status, error_message, project_id),
         )
         await conn.commit()
     except Exception as exc:
         raise RuntimeError(f"Failed to update project status: {exc}") from exc
+    finally:
+        await conn.close()
+
+
+async def mark_interrupted_projects(message: str) -> int:
+    """
+    Mark projects left in a running state as failed. Called at startup:
+    anything still "running" then was cut off by a restart or crash.
+
+    Returns:
+        How many projects were marked.
+    """
+    conn = await _get_connection()
+    try:
+        placeholders = ",".join("?" for _ in RUNNING_STATUSES)
+        cursor = await conn.execute(
+            f"UPDATE projects SET status = 'error', error_message = ? WHERE status IN ({placeholders})",
+            (message, *RUNNING_STATUSES),
+        )
+        await conn.commit()
+        return cursor.rowcount or 0
     finally:
         await conn.close()
 
@@ -202,7 +236,7 @@ async def get_all_projects() -> list[dict]:
         cursor = await conn.execute(
             """
             SELECT p.id, p.title, p.youtube_url, p.status, p.created_at,
-                   COUNT(c.id) AS clip_count
+                   p.error_message, COUNT(c.id) AS clip_count
             FROM projects p
             LEFT JOIN clips c ON c.project_id = p.id
             GROUP BY p.id
@@ -217,6 +251,7 @@ async def get_all_projects() -> list[dict]:
                 "youtube_url": row["youtube_url"],
                 "status": row["status"],
                 "created_at": row["created_at"],
+                "error_message": row["error_message"],
                 "clip_count": row["clip_count"],
             }
             for row in rows
@@ -255,6 +290,7 @@ async def get_project(project_id: str) -> Optional[dict]:
             "youtube_url": row["youtube_url"],
             "status": row["status"],
             "created_at": row["created_at"],
+            "error_message": row["error_message"],
         }
 
         # Fetch associated clips
@@ -307,6 +343,7 @@ async def save_clip(
     caption_style: Optional[str] = None,
     needs_user_confirm: bool = False,
     reframed: bool = True,
+    captioned: bool = False,
     hashtags: Optional[list] = None,
     tags: Optional[list] = None,
 ) -> dict:
@@ -337,9 +374,9 @@ async def save_clip(
     try:
         await conn.execute(
             """INSERT INTO clips
-               (id, project_id, file_path, start_time, end_time, duration, title, reason, viral_score, face_count, layout_mode, caption_style, needs_user_confirm, reframed, hashtags, tags)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (clip_id, project_id, file_path, start_time, end_time, duration, title, reason, viral_score, face_count, layout_mode, caption_style, int(needs_user_confirm), int(reframed), hashtags_json, tags_json),
+               (id, project_id, file_path, start_time, end_time, duration, title, reason, viral_score, face_count, layout_mode, caption_style, needs_user_confirm, reframed, captioned, hashtags, tags)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (clip_id, project_id, file_path, start_time, end_time, duration, title, reason, viral_score, face_count, layout_mode, caption_style, int(needs_user_confirm), int(reframed), int(captioned), hashtags_json, tags_json),
         )
         await conn.commit()
         ret = {
@@ -350,7 +387,7 @@ async def save_clip(
             "end_time": end_time,
             "duration": duration,
             "reframed": reframed,
-            "captioned": False,
+            "captioned": captioned,
             "title": title,
             "reason": reason,
             "viral_score": viral_score,

@@ -26,6 +26,7 @@ Architecture notes:
 
 import os
 import re
+import json
 import asyncio
 import shutil
 import logging
@@ -118,6 +119,13 @@ app.mount("/files", StaticFiles(directory=TMP_DIR), name="files")
 
 _ws_connections: dict[str, set[WebSocket]] = {}
 
+# Latest progress per project, sent to a socket as soon as it connects so a
+# page that opens (or reconnects) mid-run doesn't sit on "Connecting...".
+_last_progress: dict[str, dict] = {}
+
+# Projects whose pipeline is running in this process (guards double starts).
+_active_pipelines: set[str] = set()
+
 
 async def _broadcast(project_id: str, stage: str, percent: float, message: str) -> None:
     """
@@ -131,6 +139,7 @@ async def _broadcast(project_id: str, stage: str, percent: float, message: str) 
         message:    Human-readable status text.
     """
     payload = {"stage": stage, "percent": percent, "message": message}
+    _last_progress[project_id] = payload
     dead: list[WebSocket] = []
     for ws in _ws_connections.get(project_id, set()):
         try:
@@ -151,6 +160,12 @@ async def on_startup() -> None:
     """Ensure the SQLite tables exist when the server starts."""
     await database.init_db()
     os.makedirs(TMP_DIR, exist_ok=True)
+    # Pipelines run inside this process, so anything still "running" now was
+    # cut off by a restart or crash. Mark it so the UI offers Retry instead of
+    # spinning forever.
+    n = await database.mark_interrupted_projects(INTERRUPTED_MESSAGE)
+    if n:
+        logger.warning("Marked %d interrupted project(s) as failed", n)
     logger.info("Database initialised, tmp dir ready at %s", TMP_DIR)
 
 
@@ -176,6 +191,7 @@ class ProjectListItem(BaseModel):
     youtube_url: str
     status: str
     created_at: str
+    error_message: Optional[str] = None
     clip_count: int
 
 
@@ -205,6 +221,7 @@ class ProjectDetailResponse(BaseModel):
     youtube_url: str
     status: str
     created_at: str
+    error_message: Optional[str] = None
     clips: list[ClipResponse] = []
 
 
@@ -212,153 +229,210 @@ class ProjectDetailResponse(BaseModel):
 # Background processing pipeline
 # ---------------------------------------------------------------------------
 
+INTERRUPTED_MESSAGE = (
+    "Interrupted: the backend stopped while this project was running. "
+    "Click Retry to continue where it left off."
+)
+
+
+class PipelineError(Exception):
+    """A pipeline failure with a message meant for the user."""
+
+
+def _read_json(path: str):
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
+def _write_json(path: str, data) -> None:
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+    os.replace(tmp, path)  # atomic, so a crash never leaves half a checkpoint
+
+
 async def _run_pipeline(project_id: str, youtube_url: str) -> None:
     """
     Execute the full AI-powered pipeline in the background.
 
     Steps:
         1. Download the video using yt-dlp.
-        2. Extract transcript (YouTube captions → Whisper fallback).
+        2. Extract transcript (YouTube captions -> Gemini Live -> Whisper).
         3. Send transcript to LLM for clip suggestions.
-        4. Cut clips at LLM-suggested timestamps.
+        4. Cut, reframe and caption each clip.
         5. Save clip records to the database.
+
+    Each step leaves a checkpoint in the project folder (video.json,
+    transcript.json, suggestions.json, and the saved clips), so running the
+    pipeline again for the same project resumes after the last finished step.
     """
+    if project_id in _active_pipelines:
+        return
+    _active_pipelines.add(project_id)
+
     project_dir = os.path.join(TMP_DIR, project_id)
     clips_dir = os.path.join(project_dir, "clips")
     os.makedirs(clips_dir, exist_ok=True)
+    video_ckpt = os.path.join(project_dir, "video.json")
+    transcript_ckpt = os.path.join(project_dir, "transcript.json")
+    suggestions_ckpt = os.path.join(project_dir, "suggestions.json")
+
+    async def fail(message: str) -> None:
+        await database.update_project_status(project_id, "error", message)
+        await _broadcast(project_id, "error", 0, message)
 
     try:
-        if await database.get_project(project_id) is None:
+        project = await database.get_project(project_id)
+        if project is None:
             return
 
         # Capture the running event loop for threadsafe callbacks
         loop = asyncio.get_running_loop()
 
         # ---- STEP 1: Download ----
-        await database.update_project_status(project_id, "downloading")
-        await _broadcast(project_id, "downloading", 5, "Starting download…")
+        video = _read_json(video_ckpt)
+        if video and os.path.isfile(os.path.join(project_dir, video.get("file", ""))):
+            await _broadcast(project_id, "downloading", 25, "Video already downloaded, skipping download")
+        else:
+            await database.update_project_status(project_id, "downloading")
+            await _broadcast(project_id, "downloading", 5, "Starting download…")
 
-        def download_progress(percent: float, msg: str):
-            asyncio.run_coroutine_threadsafe(
-                _broadcast(project_id, "downloading", min(percent * 0.2 + 5, 25), msg),
-                loop,
-            )
+            def download_progress(percent: float, msg: str):
+                asyncio.run_coroutine_threadsafe(
+                    _broadcast(project_id, "downloading", min(percent * 0.2 + 5, 25), msg),
+                    loop,
+                )
 
-        result = await asyncio.to_thread(
-            downloader.download_video,
-            youtube_url,
-            project_dir,
-            download_progress,
-        )
+            try:
+                result = await asyncio.to_thread(
+                    downloader.download_video, youtube_url, project_dir, download_progress,
+                )
+            except Exception as exc:
+                logger.exception("Download failed for %s", project_id)
+                raise PipelineError(f"Download failed: {exc}") from exc
+            video = {
+                "file": os.path.basename(result["file_path"]),
+                "title": result["title"],
+                "duration": result["duration_seconds"],
+            }
+            _write_json(video_ckpt, video)
+            await database.update_project_title(project_id, video["title"])
+            await _broadcast(project_id, "downloading", 25, "Download complete")
 
-        file_path = result["file_path"]
-        title = result["title"]
-        video_duration = result["duration_seconds"]
-
-        await database.update_project_title(project_id, title)
-        await _broadcast(project_id, "downloading", 25, "Download complete")
-
-        # ---- STEP 2: Extract Transcript ----
-        await database.update_project_status(project_id, "transcribing")
-        await _broadcast(project_id, "transcribing", 30, "Extracting transcript…")
-
-        def transcript_progress(percent: float, msg: str):
-            scaled = 30 + (percent / 100) * 20  # 30-50 range
-            asyncio.run_coroutine_threadsafe(
-                _broadcast(project_id, "transcribing", scaled, msg),
-                loop,
-            )
-
-        transcript_segments = await transcriber.extract_captions(
-            youtube_url,
-            file_path,
-            progress_callback=transcript_progress,
-        )
-        
-        if not transcript_segments:
-            await database.update_project_status(project_id, "error")
-            await _broadcast(project_id, "error", 0, "Could not extract captions from this video.")
-            return
-
-        await _broadcast(project_id, "transcribing", 50, "Transcript ready")
-
-        # ---- STEP 3: LLM Clip Suggestions ----
-        await database.update_project_status(project_id, "analyzing")
-        await _broadcast(project_id, "analyzing", 55, "AI analyzing video…")
+        file_path = os.path.join(project_dir, video["file"])
+        video_duration = float(video["duration"])
 
         provider = await settings_mod.get_setting("llm_provider") or "openai"
         api_key = await settings_mod.get_setting("llm_api_key") or ""
         model = await settings_mod.get_setting("llm_model") or ""
 
-        try:
+        # ---- STEP 2: Extract Transcript ----
+        transcript_segments = _read_json(transcript_ckpt)
+        if transcript_segments:
+            await _broadcast(project_id, "transcribing", 50, "Transcript already extracted, skipping")
+        else:
+            await database.update_project_status(project_id, "transcribing")
+            await _broadcast(project_id, "transcribing", 30, "Extracting transcript…")
+
+            def transcript_progress(percent: float, msg: str):
+                scaled = 30 + (percent / 100) * 20  # 30-50 range
+                asyncio.run_coroutine_threadsafe(
+                    _broadcast(project_id, "transcribing", scaled, msg),
+                    loop,
+                )
+
+            gemini_key = api_key if provider == "gemini" else os.environ.get("GEMINI_API_KEY", "")
+            transcript_segments = await transcriber.extract_captions(
+                youtube_url,
+                file_path,
+                progress_callback=transcript_progress,
+                gemini_api_key=gemini_key,
+                whisper_model=await settings_mod.get_setting("whisper_model") or "base",
+            )
+            if not transcript_segments:
+                raise PipelineError(
+                    "Could not get a transcript: this video has no captions and speech-to-text failed. "
+                    "Add a Gemini API key in Settings to transcribe videos without captions."
+                )
+            _write_json(transcript_ckpt, transcript_segments)
+            await _broadcast(project_id, "transcribing", 50, "Transcript ready")
+
+        # ---- STEP 3: LLM Clip Suggestions ----
+        suggestions = _read_json(suggestions_ckpt)
+        if suggestions:
+            await _broadcast(project_id, "analyzing", 75, f"Using the {len(suggestions)} clip moments found earlier")
+        else:
+            await database.update_project_status(project_id, "analyzing")
+            await _broadcast(project_id, "analyzing", 55, "AI analyzing video…")
+
             def analyze_progress(stage: str, percent: float, msg: str):
                 asyncio.run_coroutine_threadsafe(
                     _broadcast(project_id, stage, percent, msg),
                     loop,
                 )
 
-            suggestions: list[dict] = await llm.get_clip_suggestions(
-                transcript_segments, provider, api_key, model, video_duration,
-                progress_callback=analyze_progress
-            )
+            try:
+                suggestions = await llm.get_clip_suggestions(
+                    transcript_segments, provider, api_key, model, video_duration,
+                    progress_callback=analyze_progress,
+                )
+            except Exception as e:
+                logger.exception("LLM step failed for %s", project_id)
+                raise PipelineError(f"AI step failed: {llm.friendly_error(e)}") from e
 
-        except Exception as e:
-            msg = str(e).lower()
-            if "401" in msg or "403" in msg:
-                err_msg = "Invalid API key. Check your settings."
-            elif "429" in msg:
-                err_msg = "Rate limit hit. Wait a moment and try again."
-            else:
-                err_msg = f"AI Error: {e}"
-            await database.update_project_status(project_id, "error")
-            await _broadcast(project_id, "error", 0, err_msg)
-            return
+            if not suggestions:
+                raise PipelineError("AI could not find clip moments. Try a different video or another model.")
+            _write_json(suggestions_ckpt, suggestions)
+            await _broadcast(project_id, "analyzing", 75, f"Found {len(suggestions)} clip suggestions")
 
-        if not suggestions:
-            await database.update_project_status(project_id, "error")
-            await _broadcast(project_id, "error", 0, "AI could not find clip moments. Try a different video or check your API key.")
-            return
-
-        await _broadcast(
-            project_id, "analyzing", 75,
-            f"Found {len(suggestions)} clip suggestions",
-        )
-
-        # ---- STEP 4: Cut Clips & Reframe ----
+        # ---- STEP 4: Cut, reframe and caption each clip ----
         await database.update_project_status(project_id, "processing")
+        caption_style = await settings_mod.get_setting("caption_style")
+
+        done_starts = {round(c["start_time"], 2) for c in (await database.get_project(project_id) or {}).get("clips", [])}
+        failed: list[str] = []
+        total = len(suggestions)
 
         for i, suggestion in enumerate(suggestions):
-            progress_pct = 75 + (i / len(suggestions) * 20)
-            await _broadcast(project_id, "processing", progress_pct, 
-                             f"Processing clip {i+1} of {len(suggestions)}...")
-            
-            clip = await reframer.process_clip(
-                file_path, suggestion, clips_dir, project_id
-            )
-            
-            # STEP 5 — BURN CAPTIONS
-            caption_style = await settings_mod.get_setting("caption_style")
+            label = f"clip {i+1} of {total}"
+            if round(suggestion["start"], 2) in done_starts:
+                continue  # made on an earlier run
+
+            await _broadcast(project_id, "processing", 75 + (i / total * 20), f"Processing {label}...")
+            try:
+                clip = await reframer.process_clip(file_path, suggestion, clips_dir, project_id)
+            except Exception as exc:
+                logger.exception("Clip %d failed for %s", i + 1, project_id)
+                failed.append(f"{i+1}")
+                await _broadcast(project_id, "processing", 75 + ((i + 1) / total * 20),
+                                 f"Warning: {label} failed and was skipped ({str(exc)[:120]})")
+                continue
+
+            # Captions are a bonus: if burning fails, keep the clip without them.
+            captioned = False
             if caption_style and caption_style != "none":
-                progress_pct = 90 + (i / len(suggestions) * 8)
-                await _broadcast(project_id, "processing", progress_pct, 
-                                 f"Adding captions to clip {i+1}...")
-                captioned_clip = await captioner.burn_captions(
-                    clip['file_path'],
-                    transcript_segments,           # full transcript from Step 2
-                    suggestion['start'],  # clip start time in original video
-                    suggestion['end'],    # clip end time
-                    caption_style
-                )
-                # Replace clip file with captioned version
-                os.replace(captioned_clip, clip['file_path'])
-                clip["caption_style"] = caption_style
+                await _broadcast(project_id, "processing", 90 + (i / total * 8), f"Adding captions to {label}...")
+                try:
+                    captioned_clip = await captioner.burn_captions(
+                        clip["file_path"], transcript_segments,
+                        suggestion["start"], suggestion["end"], caption_style,
+                    )
+                    if captioned_clip != clip["file_path"]:
+                        os.replace(captioned_clip, clip["file_path"])
+                        captioned = True
+                        clip["caption_style"] = caption_style
+                except Exception as exc:
+                    logger.exception("Captions failed for clip %d of %s", i + 1, project_id)
+                    await _broadcast(project_id, "processing", 90 + (i / total * 8),
+                                     f"Warning: captions failed for {label}, keeping it without captions")
 
             filename = os.path.basename(clip["file_path"])
-            file_url = f"/files/{project_id}/clips/{filename}"
-
             await database.save_clip(
                 project_id=project_id,
-                file_path=file_url,
+                file_path=f"/files/{project_id}/clips/{filename}",
                 start_time=clip["start_time"],
                 end_time=clip["end_time"],
                 title=clip.get("title"),
@@ -369,23 +443,32 @@ async def _run_pipeline(project_id: str, youtube_url: str) -> None:
                 caption_style=clip.get("caption_style"),
                 needs_user_confirm=clip.get("needs_user_confirm", False),
                 reframed=clip.get("reframed", True),
+                captioned=captioned,
                 hashtags=suggestion.get("hashtags", []),
                 tags=suggestion.get("tags", []),
             )
+            done_starts.add(round(suggestion["start"], 2))
 
-        await database.update_project_status(project_id, "done")
-        await _broadcast(project_id, "done", 100, "Complete")
+        made = sum(1 for sgg in suggestions if round(sgg["start"], 2) in done_starts)
+        if made == 0:
+            raise PipelineError(f"None of the {total} clips could be made. Check the backend log, then click Retry.")
 
+        note = None
+        if failed:
+            note = f"{made} of {total} clips were made; clip {', '.join(failed)} failed. Click Retry to try those again."
+        await database.update_project_status(project_id, "done", note)
+        await _broadcast(project_id, "done", 100, note or "Complete")
+
+    except PipelineError as exc:
+        await fail(str(exc))
     except Exception as exc:
         import traceback
         with open("error_trace.txt", "w") as f:
             f.write(traceback.format_exc())
-            
         logger.exception("Pipeline failed for project %s", project_id)
-        await database.update_project_status(project_id, "error")
-        await _broadcast(
-            project_id, "error", 0, f"Pipeline error: {exc}"
-        )
+        await fail(f"Pipeline error: {exc}")
+    finally:
+        _active_pipelines.discard(project_id)
 
 
 # ---------------------------------------------------------------------------
@@ -441,6 +524,7 @@ async def delete_project(project_id: str):
         raise HTTPException(status_code=404, detail="Project not found")
 
     await database.delete_project(project_id)
+    _last_progress.pop(project_id, None)
 
     # Clean up files on disk
     project_dir = os.path.join(TMP_DIR, project_id)
@@ -448,6 +532,24 @@ async def delete_project(project_id: str):
         shutil.rmtree(project_dir, ignore_errors=True)
 
     return {"success": True}
+
+
+@app.post("/api/projects/{project_id}/retry", status_code=202)
+async def retry_project(project_id: str, background_tasks: BackgroundTasks):
+    """
+    Run a failed or interrupted project again. Finished steps (download,
+    transcript, clip moments, clips already made) are reused, so it picks up
+    where it stopped.
+    """
+    project = await database.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project_id in _active_pipelines:
+        raise HTTPException(status_code=409, detail="This project is already running")
+    await database.update_project_status(project_id, "pending")
+    _last_progress.pop(project_id, None)
+    background_tasks.add_task(_run_pipeline, project_id, project["youtube_url"])
+    return {"project_id": project_id, "status": "pending"}
 
 
 # ---------------------------------------------------------------------------
@@ -576,6 +678,8 @@ async def websocket_progress(websocket: WebSocket, project_id: str):
     _ws_connections[project_id].add(websocket)
 
     try:
+        if project_id in _last_progress:
+            await websocket.send_json(_last_progress[project_id])
         # Stay alive — wait for the client to close or send pings
         while True:
             await websocket.receive_text()
